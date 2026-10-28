@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw
 
 from app.core.forensics import EvidenceStatus
 from app.modules.forensics.image import (
+    check_c2pa_and_provenance_manifest,
     check_exif_metadata_anomaly,
     check_image_dimension_anomaly,
     check_jpeg_quality_factor_anomaly,
@@ -233,3 +234,33 @@ def test_run_slow_plane_forensics():
     assert "face_consistency" in results
     assert results["error_level_analysis"].signal_name == "error_level_analysis"
     assert results["face_consistency"].signal_name == "face_consistency"
+
+
+def test_check_c2pa_provenance_manifest():
+    """
+    Verifies detection of C2PA manifests, Google Generative AI / DALL-E claims,
+    and fallback for clean images without provenance.
+    """
+    # 1. Clean image without C2PA or AI metadata -> UNAVAILABLE
+    clean_bytes = _make_test_jpeg(400, 300)
+    sig_clean = check_c2pa_and_provenance_manifest(clean_bytes)
+    assert sig_clean.status == EvidenceStatus.UNAVAILABLE
+
+    # 2. Synthetic C2PA box with Google Generative AI claim -> ANOMALOUS
+    c2pa_fake_bytes = clean_bytes + b"caBX\x00\x00\x01\x00Created by Google Generative AI. digitalSourceType/trainedAlgorithmicMedia"
+    sig_c2pa = check_c2pa_and_provenance_manifest(c2pa_fake_bytes)
+    assert sig_c2pa.status == EvidenceStatus.ANOMALOUS
+    assert sig_c2pa.score == 1.00
+    assert sig_c2pa.details["is_ai_generated"] is True
+    assert "Google Generative AI" in sig_c2pa.details["generator"]
+
+    # 3. Filename generator pattern check -> ANOMALOUS
+    sig_fn = check_c2pa_and_provenance_manifest(clean_bytes, filename="Gemini_Generated_Image_test123.png")
+    assert sig_fn.status == EvidenceStatus.ANOMALOUS
+    assert sig_fn.details["is_ai_generated"] is True
+
+    # 4. Fast plane integration returns c2pa_provenance
+    fast_results = run_fast_plane_forensics(c2pa_fake_bytes, filename="card_scan.jpg")
+    assert "c2pa_provenance" in fast_results
+    assert fast_results["c2pa_provenance"].status == EvidenceStatus.ANOMALOUS
+

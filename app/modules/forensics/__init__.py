@@ -18,6 +18,11 @@ from app.modules.forensics.ocr import (
     validate_pan_format,
     validate_verhoeff,
 )
+from app.modules.forensics.classifier import (
+    DocumentFeatureReport,
+    DocumentType,
+    DynamicDocumentExtractor,
+)
 from app.modules.forensics.qr import (
     AadhaarSecureQRVerifier,
     create_signed_secure_qr_payload,
@@ -52,4 +57,8 @@ __all__ = [
     "compute_face_embedding_similarity",
     "run_fast_plane_forensics",
     "run_slow_plane_forensics",
+    "DynamicDocumentExtractor",
+    "DocumentFeatureReport",
+    "DocumentType",
 ]
+

@@ -1,0 +1,142 @@
+{
+  "generated_at": "2026-10-28 18:51:23",
+  "dataset": "IEEE-CIS Fraud Detection (Kaggle)",
+  "subsample_frac": null,
+  "n_train": 413378,
+  "n_val": 88581,
+  "n_test": 88581,
+  "fraud_rate_pct": 3.48,
+  "metrics": {
+    "m1_tabular": {
+      "pr_auc": 0.3839,
+      "roc_auc": 0.8388,
+      "brier": 0.0323,
+      "recall_at_5pct_fpr": 0.5248
+    },
+    "m2_graph": {
+      "pr_auc": 0.3911,
+      "roc_auc": 0.8489,
+      "brier": 0.0322,
+      "recall_at_5pct_fpr": 0.5563
+    },
+    "m3_fusion": {
+      "pr_auc": 0.4197,
+      "roc_auc": 0.8573,
+      "brier": 0.025,
+      "recall_at_5pct_fpr": 0.5417
+    }
+  },
+  "lifts": {
+    "graph_over_tabular": 0.0072,
+    "fusion_over_graph": 0.0286,
+    "total_over_tabular": 0.0358
+  },
+  "feature_names": {
+    "m1": [
+      "TransactionAmt_log",
+      "card1",
+      "card2",
+      "card3",
+      "card5",
+      "addr1",
+      "addr2",
+      "dist1",
+      "dist2",
+      "C1",
+      "C2",
+      "C5",
+      "C6",
+      "C11",
+      "C13",
+      "C14",
+      "D1",
+      "D2",
+      "D4",
+      "D10",
+      "D15",
+      "M_match_score",
+      "P_emaildomain_enc",
+      "R_emaildomain_enc"
+    ],
+    "m2": [
+      "TransactionAmt_log",
+      "card1",
+      "card2",
+      "card3",
+      "card5",
+      "addr1",
+      "addr2",
+      "dist1",
+      "dist2",
+      "C1",
+      "C2",
+      "C5",
+      "C6",
+      "C11",
+      "C13",
+      "C14",
+      "D1",
+      "D2",
+      "D4",
+      "D10",
+      "D15",
+      "M_match_score",
+      "P_emaildomain_enc",
+      "R_emaildomain_enc",
+      "shared_card1_count",
+      "shared_addr1_count",
+      "shared_device_count",
+      "identity_nulls",
+      "addr_mismatch"
+    ],
+    "m3": [
+      "m1_prob",
+      "m2_prob",
+      "m0_rule_score",
+      "ocr_contradiction",
+      "id_checksum_valid",
+      "tampering_ela_score",
+      "face_cosine_dist",
+      "is_doc_missing",
+      "is_selfie_missing",
+      "is_graph_isolated"
+    ]
+  },
+  "adversarial_matrix": [
+    {
+      "M0 (Rules)": "0.0481",
+      "M1 (Tabular)": "0.3839",
+      "M2 (Graph)": "0.3911",
+      "M3 (ARGUS)": "0.4197",
+      "Scenario": "Clean Baseline"
+    },
+    {
+      "M0 (Rules)": "0.0481",
+      "M1 (Tabular)": "0.3839",
+      "M2 (Graph)": "0.3912",
+      "M3 (ARGUS)": "0.4198",
+      "Scenario": "10% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": "0.0481",
+      "M1 (Tabular)": "0.3839",
+      "M2 (Graph)": "0.3910",
+      "M3 (ARGUS)": "0.4197",
+      "Scenario": "20% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": "0.0481",
+      "M1 (Tabular)": "0.3839",
+      "M2 (Graph)": "0.3525",
+      "M3 (ARGUS)": "0.4152",
+      "Scenario": "30% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": "0.0481",
+      "M1 (Tabular)": "0.3839",
+      "M2 (Graph)": "0.3841",
+      "M3 (ARGUS)": "0.4126",
+      "Scenario": "Adversarial Camouflage"
+    }
+  ]
+}

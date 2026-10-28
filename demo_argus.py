@@ -571,78 +571,219 @@ with tab_doc:
 
         st.markdown("---")
 
-        # --- Image Forensics upload ---
-        st.markdown("#### 🖼️ Fast-Plane Image Forensics (< 15ms)")
-        st.markdown("""
-        <div style="background:#10132a; border:1px solid #1e2448; border-radius:10px; padding:12px 16px; margin-bottom:12px;">
-          <table style="width:100%; font-size:0.8rem; border-collapse:collapse;">
-            <tr>
-              <td style="color:#565b8a; padding:3px 8px 3px 0;">📐 Dimensions</td>
-              <td style="color:#888;">Fixed 1024×1024 → AI generator</td>
-            </tr>
-            <tr>
-              <td style="color:#565b8a; padding:3px 8px 3px 0;">📷 EXIF</td>
-              <td style="color:#888;">Stable Diffusion / Midjourney / DALL-E tags</td>
-            </tr>
-            <tr>
-              <td style="color:#565b8a; padding:3px 8px 3px 0;">🗜️ JPEG Quality</td>
-              <td style="color:#888;">ITU-T T.81 quantization table inversion → Q=90/95</td>
-            </tr>
-            <tr>
-              <td style="color:#565b8a; padding:3px 8px 3px 0;">🔍 ELA</td>
-              <td style="color:#888;">Recompression differential for splice detection</td>
-            </tr>
-          </table>
-        </div>
-        """, unsafe_allow_html=True)
-        uploaded = st.file_uploader("Upload a JPEG/PNG for forensic scan", type=["jpg","jpeg","png"])
-        if uploaded:
+        # --- Universal Document Classifier & Feature Extraction Engine ---
+        st.markdown("#### 🪪 Universal Document Classifier & Dynamic Feature Extraction")
+        st.markdown(
+            "<div style='color:#565b8a; font-size:0.82rem; margin-bottom:12px;'>"
+            "Deep neural OCR (RapidOCR) + statutory rules + multi-layer forensic detection. "
+            "Dynamically classifies Aadhaar, PAN, Driving Licence, Passport, and rejects non-statutory regular IDs."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        doc_preset = st.selectbox(
+            "Select a Document or Upload Custom File:",
+            [
+                "🟢 Real Aadhaar Card (Omdeep Borkar)",
+                "🔴 AI-Generated Aadhaar (Gemini / Imagen)",
+                "🔴 AI-Generated Driving Licence (Gemini / Imagen)",
+                "🔴 AI-Generated PAN Card (Gemini / Imagen)",
+                "🟡 Non-Statutory Regular ID (College Campus Badge)",
+                "📁 Custom Upload (Upload your own ID card)",
+            ],
+            key="doc_preset_select",
+        )
+
+        raw_bytes = None
+        img_filename = ""
+
+        if doc_preset.startswith("🟢 Real Aadhaar"):
+            path = "/mnt/data/projects/modularMonolith/WhatsApp Image 2026-10-28 at 18.49.11.jpeg"
+            img_filename = "WhatsApp Image 2026-10-28 at 18.49.11.jpeg"
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    raw_bytes = f.read()
+        elif doc_preset.startswith("🔴 AI-Generated Aadhaar"):
+            path = "/mnt/data/projects/modularMonolith/ai_documents/Gemini_Generated_Image_krsb09krsb09krsb.png"
+            img_filename = "Gemini_Generated_Image_krsb09krsb09krsb.png"
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    raw_bytes = f.read()
+        elif doc_preset.startswith("🔴 AI-Generated Driving Licence"):
+            path = "/mnt/data/projects/modularMonolith/ai_documents/Gemini_Generated_Image_4f86pb4f86pb4f86.png"
+            img_filename = "Gemini_Generated_Image_4f86pb4f86pb4f86.png"
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    raw_bytes = f.read()
+        elif doc_preset.startswith("🔴 AI-Generated PAN Card"):
+            path = "/mnt/data/projects/modularMonolith/ai_documents/Gemini_Generated_Image_otq4fhotq4fhotq4.png"
+            img_filename = "Gemini_Generated_Image_otq4fhotq4fhotq4.png"
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    raw_bytes = f.read()
+        elif doc_preset.startswith("🟡 Non-Statutory"):
+            from PIL import ImageDraw
+            badge_img = Image.new("RGB", (856, 540), color=(240, 245, 255))
+            d = ImageDraw.Draw(badge_img)
+            d.rectangle([0, 0, 856, 80], fill=(20, 50, 120))
+            d.text((25, 25), "CAMPUS UNIVERSITY - STUDENT IDENTITY CARD", fill=(255, 255, 255))
+            d.text((50, 120), "STUDENT ID CARD", fill=(0, 0, 0))
+            d.text((50, 160), "Name: Rahul Verma", fill=(0, 0, 0))
+            d.text((50, 200), "Roll No: 2023CSB1042", fill=(0, 0, 0))
+            d.text((50, 240), "Valid Till: May 2027", fill=(0, 0, 0))
+            buf = io.BytesIO()
+            badge_img.save(buf, format="JPEG", quality=90)
+            raw_bytes = buf.getvalue()
+            img_filename = "campus_student_id.jpg"
+        else:
+            uploaded = st.file_uploader("Upload a JPEG/PNG for feature extraction and forensic audit", type=["jpg", "jpeg", "png"], key="custom_doc_upload")
+            if uploaded:
+                raw_bytes = uploaded.read()
+                img_filename = uploaded.name
+
+        if raw_bytes:
             try:
-                from app.modules.forensics.image import run_fast_plane_forensics
+                from app.modules.forensics.classifier import DynamicDocumentExtractor, DocumentType
                 from PIL import Image
-                raw = uploaded.read()
-                img = Image.open(io.BytesIO(raw))
-                st.image(img, caption=f"{uploaded.name} · {img.size[0]}×{img.size[1]}px", width=260)
-                t_scan = time.perf_counter()
-                sigs = run_fast_plane_forensics(raw)
-                elapsed_scan = (time.perf_counter() - t_scan) * 1000
-                st.markdown(f"<div style='color:#565b8a; font-size:0.78rem; margin: 6px 0 10px;'>Scan completed in {elapsed_scan:.1f}ms · {len(sigs)} signals evaluated</div>", unsafe_allow_html=True)
-                # run_fast_plane_forensics returns dict[str, TamperingSignal]
-                for sig_key, s in sigs.items():
+                import time
+
+                img_disp = Image.open(io.BytesIO(raw_bytes))
+                st.image(img_disp, caption=f"{img_filename} · {img_disp.size[0]}×{img_disp.size[1]}px", width=340)
+
+                t0 = time.perf_counter()
+                extractor = DynamicDocumentExtractor()
+                report = extractor.analyze_document(raw_bytes, filename=img_filename)
+                t_elapsed = (time.perf_counter() - t0) * 1000
+
+                st.markdown(f"<div style='color:#565b8a; font-size:0.78rem; margin: 6px 0 12px;'>Feature extraction & multi-plane scan completed in {t_elapsed:.1f}ms</div>", unsafe_allow_html=True)
+
+                # 1. Classification & Statutory Status Header
+                type_badges = {
+                    DocumentType.AADHAAR_CARD: ("🇮🇳 AADHAAR CARD", "#2ade7c"),
+                    DocumentType.PAN_CARD: ("💳 PAN CARD (INCOME TAX)", "#2ade7c"),
+                    DocumentType.DRIVING_LICENCE: ("🚗 DRIVING LICENCE", "#2ade7c"),
+                    DocumentType.PASSPORT: ("🛂 PASSPORT (REPUBLIC OF INDIA)", "#2ade7c"),
+                    DocumentType.REGULAR_ID_OR_OTHER: ("🪪 REGULAR ID / NON-STATUTORY CARD", "#ffb84d"),
+                    DocumentType.UNKNOWN: ("❓ UNKNOWN DOCUMENT", "#ff6b6b"),
+                }
+                type_title, type_col = type_badges.get(report.document_type, ("DOCUMENT", "#5c6eff"))
+
+                anchors_html = "".join(f"<span style='background:#1e2448; color:#7d8eff; padding:3px 8px; border-radius:4px; font-size:0.75rem; margin-right:6px;'>{a}</span>" for a in report.differentiating_anchors)
+
+                st.markdown(
+                    f"""
+                    <div style="background:#10132a; border:1px solid #1e2448; border-left:4px solid {type_col}; border-radius:10px; padding:14px 16px; margin-bottom:14px;">
+                      <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; color:{type_col}; font-size:1.05rem;">{type_title}</span>
+                        <span style="font-size:0.8rem; color:#888;">Confidence: <strong>{report.type_confidence * 100:.0f}%</strong></span>
+                      </div>
+                      <div style="margin-top:6px; font-size:0.82rem; color:#c0c4d4;">
+                        <strong>Statutory KYC Document:</strong> {'✅ Yes (Official Indian Government Identity)' if report.is_statutory_kyc_document else '❌ No (Non-statutory card, rejected for KYC)'}
+                      </div>
+                      <div style="margin-top:8px;">{anchors_html}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                # 2. Extracted Features Summary Table
+                st.markdown("##### 📋 Extracted Demographic & Statutory Fields")
+                field_rows = []
+                if report.id_number:
+                    status_icon = "✅" if report.checksum_or_rule_valid else "❌"
+                    field_rows.append(f"<tr><td style='color:#7d8eff; font-weight:600;'>ID Number</td><td><code>{report.id_number}</code> {status_icon} <span style='font-size:0.78rem; opacity:0.8;'>({report.checksum_details})</span></td></tr>")
+                if report.holder_name:
+                    field_rows.append(f"<tr><td style='color:#7d8eff; font-weight:600;'>Full Name</td><td><strong>{report.holder_name}</strong></td></tr>")
+                if report.dob:
+                    field_rows.append(f"<tr><td style='color:#7d8eff; font-weight:600;'>Date of Birth</td><td><code>{report.dob}</code></td></tr>")
+                for k, v in report.secondary_info.items():
+                    field_rows.append(f"<tr><td style='color:#888;'>{k}</td><td>{v}</td></tr>")
+                field_rows.append(f"<tr><td style='color:#888;'>Physical Form Factor</td><td><code>{report.form_factor}</code></td></tr>")
+                field_rows.append(f"<tr><td style='color:#888;'>QR Code Analysis</td><td>{report.qr_analysis}</td></tr>")
+
+                table_body = "".join(field_rows)
+                st.markdown(
+                    f"""
+                    <table style="width:100%; font-size:0.82rem; border-collapse:collapse; background:#10132a; border:1px solid #1e2448; border-radius:8px; margin-bottom:14px;" cellpadding="8">
+                      <tbody>
+                        {table_body}
+                      </tbody>
+                    </table>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                # 3. Layered AI & Tampering Detection Results
+                st.markdown("##### 🛡️ Layered Forensic & AI Signals")
+                for sig_key, s in report.tampering_signals.items():
+                    if sig_key == "image_dimensions":
+                        continue
                     label = sig_key.replace("_", " ").title()
                     detail_str = ", ".join(
                         f"{k}: {v}" for k, v in s.details.items()
+                        if k not in ("matched_claims", "is_ai_generated")
                     ) if s.details else ""
-                    score_str = f" · score {s.score:.3f}" if s.score is not None else ""
-                    # Build detail fragment as a plain string — no nested f-string escapes
-                    detail_html = (
-                        f'<br><span style="font-size:0.8rem;opacity:0.7">{detail_str}</span>'
-                        if detail_str else ""
-                    )
+                    detail_html = f'<br><span style="font-size:0.78rem;opacity:0.75">{detail_str}</span>' if detail_str else ""
                     if s.status == EvidenceStatus.ANOMALOUS:
-                        st.markdown(
-                            f'<div class="forensic-fail" style="margin-bottom:8px;">'
-                            f'🔴 <strong>{label}</strong>{score_str}{detail_html}'
-                            f'</div>',
-                            unsafe_allow_html=True,
-                        )
+                        st.markdown(f'<div class="forensic-fail" style="margin-bottom:6px;">🔴 <strong>{label}</strong> — ANOMALOUS{detail_html}</div>', unsafe_allow_html=True)
                     elif s.status == EvidenceStatus.PRESENT:
-                        st.markdown(
-                            f'<div class="forensic-pass" style="margin-bottom:8px;">'
-                            f'🟢 <strong>{label}</strong> — PRESENT{score_str}{detail_html}'
-                            f'</div>',
-                            unsafe_allow_html=True,
-                        )
+                        st.markdown(f'<div class="forensic-pass" style="margin-bottom:6px;">🟢 <strong>{label}</strong> — PRESENT{detail_html}</div>', unsafe_allow_html=True)
                     else:
-                        st.markdown(
-                            f'<div style="background:#10132a; border:1px solid #2c3e70;'
-                            f' border-radius:8px; padding:10px 14px; color:#565b8a; margin-bottom:6px;">'
-                            f'◌ <strong>{label}</strong> — UNAVAILABLE</div>',
-                            unsafe_allow_html=True,
-                        )
+                        st.markdown(f'<div style="background:#10132a; border:1px solid #2c3e70; border-radius:8px; padding:8px 12px; color:#565b8a; margin-bottom:6px; font-size:0.82rem;">◌ <strong>{label}</strong> — UNAVAILABLE (Unknown Provenance){detail_html}</div>', unsafe_allow_html=True)
+
+                # 4. Final KYC Verdict Banner
+                st.markdown("##### ⚖️ KYC Compliance Decision")
+                if report.kyc_status == "ACCEPTABLE":
+                    st.markdown(
+                        f"""
+                        <div class="forensic-pass" style="background:#0b2416; border:2px solid #2ade7c; padding:14px 16px; border-radius:10px;">
+                          <div style="color:#2ade7c; font-weight:700; font-size:1rem;">✅ ONBOARDING ACCEPTABLE</div>
+                          <div style="color:#c0c4d4; font-size:0.84rem; margin-top:4px;">{report.kyc_summary}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                elif report.kyc_status == "REVIEW":
+                    st.markdown(
+                        f"""
+                        <div class="forensic-warn" style="background:#261f0d; border:2px solid #ffb84d; padding:14px 16px; border-radius:10px;">
+                          <div style="color:#ffb84d; font-weight:700; font-size:1rem;">⚠️ MANUAL REVIEW REQUIRED</div>
+                          <div style="color:#c0c4d4; font-size:0.84rem; margin-top:4px;">{report.kyc_summary}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f"""
+                        <div class="forensic-fail" style="background:#260d13; border:2px solid #ff4d4d; padding:14px 16px; border-radius:10px;">
+                          <div style="color:#ff6b6b; font-weight:700; font-size:1rem;">❌ ONBOARDING REJECTED (HIGH FRAUD RISK)</div>
+                          <div style="color:#c0c4d4; font-size:0.84rem; margin-top:4px; line-height:1.6;">{report.kyc_summary}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                # 5. Scientific Explainer Addressing Watermark-Removal Benchmark
+                with st.expander("📚 Defense-in-Depth Architecture: Addressing Watermark-Erasure Threat Model"):
+                    st.markdown("""
+                    <div style="font-size:0.84rem; color:#c0c4d4; line-height:1.7;">
+                      <p><strong style="color:#7d8eff;">Why Missing Watermark ≠ Genuine Document</strong><br>
+                      As demonstrated at <em>NeurIPS 2024 ("Invisible Image Watermarks Are Provably Removable Using Generative AI")</em> and the <em>2025 NeurIPS watermark-erasure competition</em> (where top teams removed pixel watermarks from &ge;89% of benchmark images), and confirmed in the <em>WARP benchmark</em> (32 watermark methods, 34 erasure techniques): <strong>a missing watermark cannot be treated as evidence that an image is genuine</strong>.
+                      Argus treats missing provenance as <code>EvidenceStatus.UNAVAILABLE</code> (unknown origin), never as authentic.</p>
+
+                      <p><strong style="color:#7d8eff;">Multi-Layer Defense Strategy:</strong><br>
+                      1. <strong>ISO/IEC 19566-5 C2PA Provenance</strong>: Detects cryptographic JUMBF boxes (<code>caBX</code> chunks) embedded by Gemini/Imagen, DALL-E, and Adobe Firefly.<br>
+                      2. <strong>Verhoeff Dihedral Permutation Checksum ($D_5$)</strong>: Generative diffusion models hallucinate random text numbers; 90% of random 12-digit numbers fail the Verhoeff check.<br>
+                      3. <strong>Statutory Cross-Validation</strong>: Entity types (4th PAN char) and surname initial matching (5th char) immediately catch synthetic identity cards.<br>
+                      4. <strong>Visual Pseudo-QR Detection</strong>: Generative models render visually plausible QR finder patterns that contain zero decodable bits.<br>
+                      5. <strong>Offline UIDAI RSA-2048 Verification</strong>: Official QR payloads signed with UIDAI's 2048-bit key cannot be forged without the private government key.
+                    </div>
+                    """, unsafe_allow_html=True)
+
             except Exception as ex:
                 import traceback
-                st.error(f"Forensics error: {ex}")
+                st.error(f"Extraction error: {ex}")
                 st.code(traceback.format_exc(), language="text")
 
 # ══════════════════════════════════════════════════════════════════════════════

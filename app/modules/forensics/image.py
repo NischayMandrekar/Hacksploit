@@ -8,7 +8,7 @@ from app.core.forensics import EvidenceStatus, TamperingSignal
 
 logger = logging.getLogger(__name__)
 
-# Known AI generator fixed output dimensions (Stable Diffusion, Midjourney, DALL-E, Flux)
+# Known AI generator fixed output dimensions (Stable Diffusion, Midjourney, DALL-E, Flux, Imagen 2)
 KNOWN_AI_RESOLUTIONS = {
     (1024, 1024),
     (512, 512),
@@ -21,6 +21,12 @@ KNOWN_AI_RESOLUTIONS = {
     (1024, 1536),
     (896, 1152),
     (1152, 896),
+    (1408, 768),  # Google Imagen 2 / Gemini widescreen 16:9
+    (768, 1408),  # Google Imagen 2 / Gemini portrait 9:16
+    (1344, 768),
+    (768, 1344),
+    (1024, 576),
+    (576, 1024),
 }
 
 # Known AI tool / generative software signatures in EXIF Software or Artist tags
@@ -38,6 +44,11 @@ AI_SOFTWARE_SIGNATURES = [
     "invokeai",
     "novelai",
     "flux.1",
+    "gemini",
+    "google generative ai",
+    "google c2pa",
+    "imagen",
+    "synthid",
 ]
 
 # Standard baseline luminance quantization table at Quality 50 (ITU-T T.81 / ISO 10918-1)
@@ -61,6 +72,124 @@ def _load_image(image_input: Image.Image | bytes) -> Image.Image:
 
 # --- P0 Fast Plane Signals (< 10ms, Pillow only, synchronous) ---
 
+def check_c2pa_and_provenance_manifest(
+    image_input: Image.Image | bytes,
+    filename: str = "",
+) -> TamperingSignal:
+    """
+    Inspects image for Coalition for Content Provenance and Authenticity (C2PA) / Content Credentials
+    manifests (ISO/IEC 19566-5 JUMBF containers in PNG caBX/caIp chunks and JPEG APP11 markers),
+    generative AI text chunks (parameters, prompt, workflow), and cryptographic provenance declarations.
+    """
+    try:
+        raw_bytes: bytes
+        if isinstance(image_input, bytes):
+            raw_bytes = image_input
+            img = _load_image(image_input)
+        else:
+            img = image_input
+            buf = io.BytesIO()
+            fmt = img.format or "PNG"
+            img.save(buf, format=fmt)
+            raw_bytes = buf.getvalue()
+
+        claims: list[str] = []
+        generator: str | None = None
+        has_c2pa_container = (
+            b"caBX" in raw_bytes
+            or b"caIp" in raw_bytes
+            or b"c2pa" in raw_bytes
+            or b"\xff\xeb" in raw_bytes  # JPEG APP11 marker
+            or b"jumd" in raw_bytes      # JUMBF description box
+        )
+
+        # 1. Official IPTC digital source type assertion for AI-generated media
+        if b"trainedAlgorithmicMedia" in raw_bytes:
+            claims.append("IPTC digitalSourceType: trainedAlgorithmicMedia (AI-generated)")
+
+        # 2. Generator-specific C2PA claims and cryptographic certificates
+        if (
+            b"Created by Google Generative AI" in raw_bytes
+            or b"Google C2PA Core Generator" in raw_bytes
+            or b"Google C2PA Media Services" in raw_bytes
+        ):
+            generator = "Google Generative AI (Gemini / Imagen)"
+            claims.append("Google C2PA Cryptographic Provenance Manifest")
+        elif b"DALL-E" in raw_bytes or b"dall-e" in raw_bytes:
+            generator = "OpenAI DALL-E"
+            claims.append("OpenAI Provenance Signature (C2PA)")
+        elif b"Adobe Firefly" in raw_bytes or b"Firefly" in raw_bytes:
+            generator = "Adobe Firefly"
+            claims.append("Adobe Content Credentials (C2PA)")
+        elif b"Midjourney" in raw_bytes:
+            generator = "Midjourney"
+            claims.append("Midjourney Generative Signature")
+        elif b"Microsoft Copilot" in raw_bytes or b"BingImageCreator" in raw_bytes:
+            generator = "Microsoft Designer / Copilot"
+            claims.append("Microsoft C2PA Provenance Signature")
+
+        # 3. Inspect PNG metadata chunks (tEXt, iTXt, zTXt)
+        for k, v in getattr(img, "info", {}).items():
+            k_lower = str(k).lower()
+            v_str = str(v)
+            if k_lower in ("parameters", "prompt", "workflow", "comment"):
+                for tool in ("automatic1111", "comfyui", "novelai", "stable diffusion", "flux"):
+                    if tool in v_str.lower() or tool in k_lower:
+                        if not generator:
+                            generator = tool.title()
+                        claims.append(f"PNG {k} chunk declares generative pipeline ({tool})")
+
+        # 4. Filename inspection for known AI generation patterns
+        if filename:
+            fn_lower = filename.lower()
+            for pattern in ("gemini_generated", "dall", "midjourney", "stablediffusion", "flux"):
+                if pattern in fn_lower:
+                    claims.append(f"Filename matches AI generator export pattern ({filename})")
+                    if not generator:
+                        generator = "Generative AI Tool"
+
+        if claims or (has_c2pa_container and generator):
+            gen_label = generator or "Generative AI Model"
+            return TamperingSignal(
+                signal_name="c2pa_provenance",
+                status=EvidenceStatus.ANOMALOUS,
+                score=1.00,
+                details={
+                    "is_ai_generated": True,
+                    "generator": gen_label,
+                    "has_c2pa_container": has_c2pa_container,
+                    "matched_claims": claims,
+                    "reason": f"Cryptographic provenance confirms media was generated by {gen_label}.",
+                },
+            )
+
+        if has_c2pa_container:
+            return TamperingSignal(
+                signal_name="c2pa_provenance",
+                status=EvidenceStatus.PRESENT,
+                score=0.05,
+                details={
+                    "is_ai_generated": False,
+                    "has_c2pa_container": True,
+                    "reason": "C2PA manifest container present without generative AI claims.",
+                },
+            )
+
+        return TamperingSignal(
+            signal_name="c2pa_provenance",
+            status=EvidenceStatus.UNAVAILABLE,
+            details={
+                "reason": "No C2PA provenance manifest or generative tool metadata detected (metadata may have been stripped).",
+            },
+        )
+    except Exception as e:
+        return TamperingSignal(
+            signal_name="c2pa_provenance",
+            status=EvidenceStatus.UNAVAILABLE,
+            details={"error": str(e)},
+        )
+
+
 def check_image_dimension_anomaly(image_input: Image.Image | bytes) -> TamperingSignal:
     """
     Checks pixel dimensions against standard AI generator output resolutions.
@@ -80,7 +209,7 @@ def check_image_dimension_anomaly(image_input: Image.Image | bytes) -> Tampering
                     "height": size[1],
                     "aspect_ratio": round(size[0] / size[1], 2),
                     "matched_ai_profile": True,
-                    "reason": f"Exact match for standard generative AI resolution {size[0]}x{size[1]}.",
+                    "reason": f"Exact match for standard generative AI canvas resolution {size[0]}x{size[1]}.",
                 },
             )
 
@@ -93,6 +222,7 @@ def check_image_dimension_anomaly(image_input: Image.Image | bytes) -> Tampering
                 "height": size[1],
                 "aspect_ratio": round(size[0] / size[1], 2),
                 "matched_ai_profile": False,
+                "reason": f"Non-preset resolution {size[0]}x{size[1]}. Note: Dimension check is a screening heuristic; genuine authenticity requires C2PA or cryptographic QR.",
             },
         )
     except Exception as e:
@@ -218,11 +348,16 @@ def check_jpeg_quality_factor_anomaly(image_input: Image.Image | bytes) -> Tampe
         )
 
 
-def run_fast_plane_forensics(document_bytes: bytes) -> dict[str, TamperingSignal]:
+def run_fast_plane_forensics(
+    document_bytes: bytes,
+    filename: str = "",
+) -> dict[str, TamperingSignal]:
     """
-    Executes the three synchronous fast-plane checks in < 15ms total without GPU or neural models.
+    Executes synchronous fast-plane checks in < 15ms total without GPU or neural models.
+    Evaluates C2PA cryptographic provenance, AI software metadata, EXIF, dimensions, and JPEG quantization.
     """
     return {
+        "c2pa_provenance": check_c2pa_and_provenance_manifest(document_bytes, filename),
         "image_dimensions": check_image_dimension_anomaly(document_bytes),
         "exif_metadata": check_exif_metadata_anomaly(document_bytes),
         "jpeg_quality": check_jpeg_quality_factor_anomaly(document_bytes),

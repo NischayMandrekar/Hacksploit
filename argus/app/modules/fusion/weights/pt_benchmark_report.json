@@ -1,0 +1,296 @@
+{
+  "generated_at": "2026-10-28 19:50:19",
+  "pt_model_path": "app\\modules\\fusion\\weights\\m3_fusion_mlp.pt",
+  "device": "cpu",
+  "architecture": "ArgusMLPFusion  Linear(10->64->32->16->1) BN+Dropout(0.3)",
+  "n_parameters": 3553,
+  "n_test": 88581,
+  "fraud_rate_pct": 3.48,
+  "metrics": {
+    "m1_tabular": {
+      "pr_auc": 0.3839,
+      "roc_auc": 0.8388,
+      "brier_score": 0.0323,
+      "recall_at_5pct_fpr": 0.5248,
+      "recall_at_1pct_fpr": 0.3808
+    },
+    "m2_graph": {
+      "pr_auc": 0.3911,
+      "roc_auc": 0.8489,
+      "brier_score": 0.0322,
+      "recall_at_5pct_fpr": 0.5563,
+      "recall_at_1pct_fpr": 0.384
+    },
+    "m3_lightgbm": {
+      "pr_auc": 0.4197,
+      "roc_auc": 0.8573,
+      "brier_score": 0.025,
+      "recall_at_5pct_fpr": 0.5417,
+      "recall_at_1pct_fpr": 0.3759
+    },
+    "m3_mlp_pt": {
+      "pr_auc": 0.413,
+      "roc_auc": 0.8545,
+      "brier_score": 0.0685,
+      "recall_at_5pct_fpr": 0.5381,
+      "recall_at_1pct_fpr": 0.3941
+    }
+  },
+  "delta_mlp_vs_lgbm": {
+    "pr_auc": -0.0067,
+    "roc_auc": -0.0028
+  },
+  "adversarial_matrix": [
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.3911,
+      "M3 (LightGBM)": 0.4197,
+      "M3 (MLP .pt)": 0.413,
+      "Scenario": "Clean Baseline"
+    },
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.3912,
+      "M3 (LightGBM)": 0.4198,
+      "M3 (MLP .pt)": 0.413,
+      "Scenario": "10% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.391,
+      "M3 (LightGBM)": 0.4197,
+      "M3 (MLP .pt)": 0.4131,
+      "Scenario": "20% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.3525,
+      "M3 (LightGBM)": 0.4152,
+      "M3 (MLP .pt)": 0.409,
+      "Scenario": "30% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.3841,
+      "M3 (LightGBM)": 0.4126,
+      "M3 (MLP .pt)": 0.4076,
+      "Scenario": "Adversarial Camouflage"
+    }
+  ],
+  "threshold_sweep_mlp": [
+    {
+      "threshold": 0.05,
+      "precision": 0.0348,
+      "recall": 1.0,
+      "f1": 0.0673,
+      "fpr": 0.9993,
+      "tp": 3083,
+      "fp": 85435,
+      "tn": 63,
+      "fn": 0
+    },
+    {
+      "threshold": 0.1,
+      "precision": 0.0514,
+      "recall": 0.9481,
+      "f1": 0.0974,
+      "fpr": 0.6316,
+      "tp": 2923,
+      "fp": 53997,
+      "tn": 31501,
+      "fn": 160
+    },
+    {
+      "threshold": 0.15,
+      "precision": 0.0797,
+      "recall": 0.8469,
+      "f1": 0.1458,
+      "fpr": 0.3524,
+      "tp": 2611,
+      "fp": 30131,
+      "tn": 55367,
+      "fn": 472
+    },
+    {
+      "threshold": 0.2,
+      "precision": 0.0944,
+      "recall": 0.7901,
+      "f1": 0.1686,
+      "fpr": 0.2735,
+      "tp": 2436,
+      "fp": 23382,
+      "tn": 62116,
+      "fn": 647
+    },
+    {
+      "threshold": 0.25,
+      "precision": 0.1108,
+      "recall": 0.7622,
+      "f1": 0.1935,
+      "fpr": 0.2205,
+      "tp": 2350,
+      "fp": 18855,
+      "tn": 66643,
+      "fn": 733
+    },
+    {
+      "threshold": 0.3,
+      "precision": 0.1257,
+      "recall": 0.7408,
+      "f1": 0.2149,
+      "fpr": 0.1858,
+      "tp": 2284,
+      "fp": 15885,
+      "tn": 69613,
+      "fn": 799
+    },
+    {
+      "threshold": 0.35,
+      "precision": 0.1379,
+      "recall": 0.7162,
+      "f1": 0.2313,
+      "fpr": 0.1615,
+      "tp": 2208,
+      "fp": 13805,
+      "tn": 71693,
+      "fn": 875
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.1575,
+      "recall": 0.6734,
+      "f1": 0.2553,
+      "fpr": 0.1299,
+      "tp": 2076,
+      "fp": 11105,
+      "tn": 74393,
+      "fn": 1007
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.1932,
+      "recall": 0.6127,
+      "f1": 0.2938,
+      "fpr": 0.0923,
+      "tp": 1889,
+      "fp": 7888,
+      "tn": 77610,
+      "fn": 1194
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.2566,
+      "recall": 0.555,
+      "f1": 0.3509,
+      "fpr": 0.058,
+      "tp": 1711,
+      "fp": 4957,
+      "tn": 80541,
+      "fn": 1372
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.3046,
+      "recall": 0.5268,
+      "f1": 0.386,
+      "fpr": 0.0434,
+      "tp": 1624,
+      "fp": 3708,
+      "tn": 81790,
+      "fn": 1459
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.3798,
+      "recall": 0.4891,
+      "f1": 0.4276,
+      "fpr": 0.0288,
+      "tp": 1508,
+      "fp": 2462,
+      "tn": 83036,
+      "fn": 1575
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.4354,
+      "recall": 0.4681,
+      "f1": 0.4511,
+      "fpr": 0.0219,
+      "tp": 1443,
+      "fp": 1871,
+      "tn": 83627,
+      "fn": 1640
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.503,
+      "recall": 0.4366,
+      "f1": 0.4674,
+      "fpr": 0.0156,
+      "tp": 1346,
+      "fp": 1330,
+      "tn": 84168,
+      "fn": 1737
+    },
+    {
+      "threshold": 0.75,
+      "precision": 0.5594,
+      "recall": 0.4139,
+      "f1": 0.4758,
+      "fpr": 0.0118,
+      "tp": 1276,
+      "fp": 1005,
+      "tn": 84493,
+      "fn": 1807
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.5922,
+      "recall": 0.3905,
+      "f1": 0.4707,
+      "fpr": 0.0097,
+      "tp": 1204,
+      "fp": 829,
+      "tn": 84669,
+      "fn": 1879
+    },
+    {
+      "threshold": 0.85,
+      "precision": 0.6503,
+      "recall": 0.3396,
+      "f1": 0.4462,
+      "fpr": 0.0066,
+      "tp": 1047,
+      "fp": 563,
+      "tn": 84935,
+      "fn": 2036
+    },
+    {
+      "threshold": 0.9,
+      "precision": 0.7156,
+      "recall": 0.2686,
+      "f1": 0.3906,
+      "fpr": 0.0038,
+      "tp": 828,
+      "fp": 329,
+      "tn": 85169,
+      "fn": 2255
+    },
+    {
+      "threshold": 0.95,
+      "precision": 0.7551,
+      "recall": 0.024,
+      "f1": 0.0465,
+      "fpr": 0.0003,
+      "tp": 74,
+      "fp": 24,
+      "tn": 85474,
+      "fn": 3009
+    }
+  ]
+}
