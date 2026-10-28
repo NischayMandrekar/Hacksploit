@@ -1,0 +1,363 @@
+{
+  "generated_at": "2026-10-28 19:35:07",
+  "dataset": "IEEE-CIS Fraud Detection (Kaggle) -- Test Split",
+  "subsample_frac": null,
+  "n_test": 88581,
+  "fraud_rate_pct": 3.48,
+  "metrics": {
+    "m1_tabular": {
+      "pr_auc": 0.3839,
+      "roc_auc": 0.8388,
+      "brier_score": 0.0323,
+      "recall_at_5pct_fpr": 0.5248,
+      "recall_at_1pct_fpr": 0.3808
+    },
+    "m2_graph": {
+      "pr_auc": 0.3911,
+      "roc_auc": 0.8489,
+      "brier_score": 0.0322,
+      "recall_at_5pct_fpr": 0.5563,
+      "recall_at_1pct_fpr": 0.384
+    },
+    "m3_fusion": {
+      "pr_auc": 0.4197,
+      "roc_auc": 0.8573,
+      "brier_score": 0.025,
+      "recall_at_5pct_fpr": 0.5417,
+      "recall_at_1pct_fpr": 0.3759
+    }
+  },
+  "lifts": {
+    "graph_over_tabular": 0.0072,
+    "fusion_over_graph": 0.0286,
+    "total_over_tabular": 0.0358
+  },
+  "tier_distribution": {
+    "APPROVE": {
+      "count": 85629,
+      "pct_of_total": 96.67,
+      "fraud_rate": 0.0198
+    },
+    "FLAG_REVIEW": {
+      "count": 1983,
+      "pct_of_total": 2.24,
+      "fraud_rate": 0.3197
+    },
+    "REJECT": {
+      "count": 969,
+      "pct_of_total": 1.09,
+      "fraud_rate": 0.775
+    }
+  },
+  "calibration_bins": [
+    {
+      "bin": "[0.0,0.1)",
+      "count": 83346,
+      "mean_predicted": 0.0162,
+      "actual_fraud_rate": 0.0175
+    },
+    {
+      "bin": "[0.1,0.2)",
+      "count": 2283,
+      "mean_predicted": 0.1447,
+      "actual_fraud_rate": 0.1034
+    },
+    {
+      "bin": "[0.2,0.3)",
+      "count": 1066,
+      "mean_predicted": 0.2367,
+      "actual_fraud_rate": 0.2448
+    },
+    {
+      "bin": "[0.3,0.4)",
+      "count": 304,
+      "mean_predicted": 0.3431,
+      "actual_fraud_rate": 0.3618
+    },
+    {
+      "bin": "[0.4,0.5)",
+      "count": 379,
+      "mean_predicted": 0.4442,
+      "actual_fraud_rate": 0.3219
+    },
+    {
+      "bin": "[0.5,0.6)",
+      "count": 73,
+      "mean_predicted": 0.5372,
+      "actual_fraud_rate": 0.5068
+    },
+    {
+      "bin": "[0.6,0.7)",
+      "count": 121,
+      "mean_predicted": 0.649,
+      "actual_fraud_rate": 0.6033
+    },
+    {
+      "bin": "[0.7,0.8)",
+      "count": 234,
+      "mean_predicted": 0.7741,
+      "actual_fraud_rate": 0.7308
+    },
+    {
+      "bin": "[0.8,0.9)",
+      "count": 753,
+      "mean_predicted": 0.8593,
+      "actual_fraud_rate": 0.7849
+    },
+    {
+      "bin": "[0.9,1.0)",
+      "count": 22,
+      "mean_predicted": 0.9115,
+      "actual_fraud_rate": 0.9091
+    }
+  ],
+  "threshold_sweep": [
+    {
+      "threshold": 0.05,
+      "precision": 0.1717,
+      "recall": 0.6503,
+      "f1": 0.2716,
+      "fpr": 0.1132,
+      "tp": 2005,
+      "fp": 9675,
+      "tn": 75823,
+      "fn": 1078
+    },
+    {
+      "threshold": 0.1,
+      "precision": 0.3096,
+      "recall": 0.5258,
+      "f1": 0.3898,
+      "fpr": 0.0423,
+      "tp": 1621,
+      "fp": 3614,
+      "tn": 81884,
+      "fn": 1462
+    },
+    {
+      "threshold": 0.15,
+      "precision": 0.3732,
+      "recall": 0.4895,
+      "f1": 0.4235,
+      "fpr": 0.0296,
+      "tp": 1509,
+      "fp": 2534,
+      "tn": 82964,
+      "fn": 1574
+    },
+    {
+      "threshold": 0.2,
+      "precision": 0.4692,
+      "recall": 0.4492,
+      "f1": 0.459,
+      "fpr": 0.0183,
+      "tp": 1385,
+      "fp": 1567,
+      "tn": 83931,
+      "fn": 1698
+    },
+    {
+      "threshold": 0.25,
+      "precision": 0.5544,
+      "recall": 0.3918,
+      "f1": 0.4591,
+      "fpr": 0.0114,
+      "tp": 1208,
+      "fp": 971,
+      "tn": 84527,
+      "fn": 1875
+    },
+    {
+      "threshold": 0.3,
+      "precision": 0.596,
+      "recall": 0.3646,
+      "f1": 0.4524,
+      "fpr": 0.0089,
+      "tp": 1124,
+      "fp": 762,
+      "tn": 84736,
+      "fn": 1959
+    },
+    {
+      "threshold": 0.35,
+      "precision": 0.6254,
+      "recall": 0.3406,
+      "f1": 0.441,
+      "fpr": 0.0074,
+      "tp": 1050,
+      "fp": 629,
+      "tn": 84869,
+      "fn": 2033
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.641,
+      "recall": 0.3289,
+      "f1": 0.4347,
+      "fpr": 0.0066,
+      "tp": 1014,
+      "fp": 568,
+      "tn": 84930,
+      "fn": 2069
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.7065,
+      "recall": 0.3046,
+      "f1": 0.4257,
+      "fpr": 0.0046,
+      "tp": 939,
+      "fp": 390,
+      "tn": 85108,
+      "fn": 2144
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.7415,
+      "recall": 0.2893,
+      "f1": 0.4162,
+      "fpr": 0.0036,
+      "tp": 892,
+      "fp": 311,
+      "tn": 85187,
+      "fn": 2191
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.7535,
+      "recall": 0.2796,
+      "f1": 0.4079,
+      "fpr": 0.0033,
+      "tp": 862,
+      "fp": 282,
+      "tn": 85216,
+      "fn": 2221
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.7566,
+      "recall": 0.2773,
+      "f1": 0.4059,
+      "fpr": 0.0032,
+      "tp": 855,
+      "fp": 275,
+      "tn": 85223,
+      "fn": 2228
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.7709,
+      "recall": 0.2663,
+      "f1": 0.3959,
+      "fpr": 0.0029,
+      "tp": 821,
+      "fp": 244,
+      "tn": 85254,
+      "fn": 2262
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.775,
+      "recall": 0.2536,
+      "f1": 0.3822,
+      "fpr": 0.0027,
+      "tp": 782,
+      "fp": 227,
+      "tn": 85271,
+      "fn": 2301
+    },
+    {
+      "threshold": 0.75,
+      "precision": 0.775,
+      "recall": 0.2436,
+      "f1": 0.3707,
+      "fpr": 0.0025,
+      "tp": 751,
+      "fp": 218,
+      "tn": 85280,
+      "fn": 2332
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.7884,
+      "recall": 0.1982,
+      "f1": 0.3167,
+      "fpr": 0.0019,
+      "tp": 611,
+      "fp": 164,
+      "tn": 85334,
+      "fn": 2472
+    },
+    {
+      "threshold": 0.85,
+      "precision": 0.8121,
+      "recall": 0.1696,
+      "f1": 0.2807,
+      "fpr": 0.0014,
+      "tp": 523,
+      "fp": 121,
+      "tn": 85377,
+      "fn": 2560
+    },
+    {
+      "threshold": 0.9,
+      "precision": 0.9091,
+      "recall": 0.0065,
+      "f1": 0.0129,
+      "fpr": 0.0,
+      "tp": 20,
+      "fp": 2,
+      "tn": 85496,
+      "fn": 3063
+    },
+    {
+      "threshold": 0.95,
+      "precision": 1.0,
+      "recall": 0.0003,
+      "f1": 0.0006,
+      "fpr": 0.0,
+      "tp": 1,
+      "fp": 0,
+      "tn": 85498,
+      "fn": 3082
+    }
+  ],
+  "adversarial_matrix": [
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.3911,
+      "M3 (ARGUS)": 0.4197,
+      "Scenario": "Clean Baseline"
+    },
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.3912,
+      "M3 (ARGUS)": 0.4198,
+      "Scenario": "10% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.391,
+      "M3 (ARGUS)": 0.4197,
+      "Scenario": "20% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.3525,
+      "M3 (ARGUS)": 0.4152,
+      "Scenario": "30% Edge Deletion"
+    },
+    {
+      "M0 (Rules)": 0.0481,
+      "M1 (Tabular)": 0.3839,
+      "M2 (Graph)": 0.3841,
+      "M3 (ARGUS)": 0.4126,
+      "Scenario": "Adversarial Camouflage"
+    }
+  ],
+  "shap_importance_m3": []
+}

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment / secrets — NEVER commit
+.env
+.env.*
+*.env
+
+# Kaggle credentials
+kaggle.json
+
+# Model weights (large binary files)
+app/modules/fusion/weights/*.joblib
+
+# Dataset (large CSVs)
+dataset/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
