@@ -34,7 +34,7 @@ reproducible adversarial robustness benchmarks.
 
 ## Current Phase
 
-**Phase 2 — Relational Identity Graph & Bounded Ego-Network Engine**
+**Phase 4 — Multi-Source Fusion & Machine Learning Model Contracts**
 
 ---
 
@@ -74,8 +74,8 @@ reproducible adversarial robustness benchmarks.
 
 ### Phase 4 — Multi-Source Fusion & Machine Learning Model Contracts
 - [x] **4.1 Baseline M0 (Deterministic Rules)**: Rule-based screening engine covering identifier reuse, field mismatch, and velocity anomalies.
-- [ ] **4.2 Model Interfaces & Feature Serializer**: Standardized input/output contracts for M1, M2, and M3; feature extraction script for the user to train models without waiting for backend completion.
-- [ ] **4.3 Proposed M3 (Multi-Source Calibrated Fusion)**: Calibrated fusion layer combining graph, document, and behavioral signals with missing-evidence indicators and uncertainty quantification.
+- [x] **4.2 KYC Feature Vectorizer & Domain Adaptation**: Extract and serialize the authoritative 10-dimensional M3 feature vector (`X_M3`) from live KYC evidence (behavioral velocity, 2-hop ego-network risk, M0 rule score, OCR contradiction, Verhoeff/PAN checksum validity, ELA tampering, face cosine distance, and missingness indicators), decoupling fusion from e-commerce schemas.
+- [ ] **4.3 Proposed M3 Calibrated Multi-Source Fusion & Hard Override Engine**: Implement `ArgusMLPFusion` PyTorch inference engine with calibrated operational thresholds (`APPROVE < 0.20`, `FLAG_REVIEW 0.20–0.75`, `REJECT ≥ 0.75`) and deterministic hard-override rejection for invalid statutory checksums, C2PA AI provenance flags, and non-statutory regular badges. Conforms to `FraudModel` protocol.
 
 ### Phase 5 — Continuous Monitoring & Case Investigation API
 - [ ] **5.1 Post-KYC Event Ingestion Pipeline**: Ingestion API for post-onboarding lifecycle events (`account_activated`, `device_changed`, `transaction_velocity_spike`).
@@ -96,28 +96,31 @@ reproducible adversarial robustness benchmarks.
 
 ## Current Task
 
-**Task ID:** 4.2
+**Task ID:** 4.3
 
-**Goal:** Implement Model Interfaces & Feature Serializer (`app/modules/fusion/features.py`, `app/modules/fusion/models.py`) providing standardized feature extraction contracts and serialized array vectors for M1 (Tabular LightGBM), M2 (Graph-enhanced LightGBM), and M3 (Calibrated Multi-Source Fusion), with explicit missing-evidence flags.
+**Goal:** Implement the Proposed M3 Calibrated Multi-Source Fusion & Hard Override Engine (`app/modules/fusion/m3.py`). Load `m3_fusion_mlp.pt` (the `ArgusMLPFusion` PyTorch MLP from Nikhil's `argus/` branch), wire the 10-dimensional `X_M3` feature vector from `KYCFeatureVectorizer`, apply calibrated operational thresholds (`APPROVE < 0.20`, `FLAG_REVIEW 0.20–0.75`, `REJECT ≥ 0.75`), and implement deterministic hard-override rejection gates (invalid statutory checksum, C2PA AI provenance flag, regular non-statutory badge) that fire before neural inference to prevent the MLP from failing open.
 
-**Inputs:** `app/core/fusion.py`, `MODELS_TRAINING_SPEC.md`, `app/modules/fusion/schemas.py`.
+**Inputs:** `app/modules/fusion/features.py` (Task 4.2), `argus/app/modules/fusion/m3_fusion.py`, `argus/models/m3_fusion_mlp.pt`, `app/core/fusion.py` (FraudModel protocol).
 
-**Output:** `app/modules/fusion/features.py`, `app/modules/fusion/models.py`, `tests/unit/test_fusion_models.py`.
+**Output:** `app/modules/fusion/m3.py`, `tests/unit/test_fusion_m3.py`.
 
 **Constraints:**
-- Standardized tabular feature vectors compatible with Scikit-learn / LightGBM.
-- Zero-training pre-calibrated baseline weights for instant testing without mandatory retraining loops.
-- Explicit binary missingness flags (`is_doc_missing`, `is_selfie_missing`, `is_graph_isolated`) per `MODELS_TRAINING_SPEC.md §6.2`.
+- Hard-override gates must fire *before* MLP inference and return `REJECT` immediately.
+- MLP inference is optional: if weights file is absent, fall back to `m0_rule_score`-based calibrated tier.
+- All outputs must conform to `FraudModel.predict_risk()` protocol (returns `RiskAssessment`).
+- Calibrated thresholds: `APPROVE < 0.20`, `FLAG_REVIEW 0.20–0.75`, `REJECT ≥ 0.75`.
+- No new PyPI dependencies beyond `torch` (already present).
 
-**Verification:** Unit tests verifying feature extraction dimensions, missingness indicators, and inference contracts for M1, M2, and M3.
+**Verification:** Unit tests covering: hard-override on checksum failure, hard-override on C2PA flag, hard-override on non-statutory badge, MLP inference with mock weights, fallback when weights absent, calibrated tier boundaries.
 
-**Depends on:** 4.1
+**Depends on:** 4.2
 
 ---
 
 ## Next Task
 
-**Task ID:** 4.3 — Proposed M3 (Multi-Source Calibrated Fusion).
+**Task ID:** 4.3 (see Current Task above)
+
 
 ---
 
@@ -132,6 +135,12 @@ reproducible adversarial robustness benchmarks.
 ---
 
 ## Log
+
+### 2026-10-28 — Task 4.2 complete
+- Changed: Implemented KYC Feature Vectorizer & Domain Adaptation in `app/modules/fusion/features.py`. Defined `M3FeatureVector` (10-field NamedTuple, all values ∈ [0.0, 1.0]) and stateless `KYCFeatureVectorizer` dataclass. Dimension-to-source mapping: `m1_prob` ← behavioral velocity (1h application + device velocity proxy, saturating at 10); `m2_prob` ← ego-network risk (shared-identifier degree × 4 types, fraud contagion 0.5 weight, cycle density 0.1 weight); `m0_rule_score` ← M0 deterministic proxy reconstructed from same evidence fields (superceded when real M0 score available via `extract_with_m0()`); `ocr_contradiction` ← 1 − `ocr_name_similarity`; `id_checksum_valid` ← 0.0/1.0/0.5 (valid/invalid/unknown); `tampering_ela_score` ← `ela_max_diff` / 50 (saturation point); `face_cosine_dist` ← 1 − `face_cosine_similarity`; `is_doc_missing`, `is_selfie_missing`, `is_graph_isolated` ← explicit binary missingness flags. Missing evidence falls back to 0.5 neutral mid-point (not 0.0 / not 1.0) to prevent imputation bias. Added `extract_m3_features()` module-level convenience helper. Exported `KYCFeatureVectorizer`, `M3FeatureVector`, `FEATURE_DIM`, and `extract_m3_features` from `app/modules/fusion/__init__.py`.
+- Files: `app/modules/fusion/features.py`, `app/modules/fusion/__init__.py`, `tests/unit/test_fusion_features.py`, `PROJECT_PLAN.md`.
+- Verified: All 46 tests in `tests/unit/test_fusion_features.py` and all 148 repository tests passed via `PYTHONPATH=. python3 -m pytest tests/unit -q`; `python3 -m ruff check app/modules/fusion/features.py tests/unit/test_fusion_features.py` returned 0 errors.
+- Limitations: `m1_prob` and `m2_prob` are domain-grounded proxies until KYC-labeled training data is available to retrain M1/M2 (ARCHITECTURE.md §4). The real M0 risk score should be injected via `extract_with_m0()` in the full pipeline (Task 4.3).
 
 ### 2026-10-28 — Task 4.1 complete
 - Changed: Implemented Baseline M0 (Deterministic Rules Engine) in `app/modules/fusion/rules.py` conforming to `FraudModel` domain protocol in `ARCHITECTURE.md` §2. Defined `RiskTier`, `EvidenceAttribution`, `RiskAssessment`, `ApplicationEvidence`, and `FraudModel` in `app/core/fusion.py`. Created Pydantic response schemas in `app/modules/fusion/schemas.py`. In `DeterministicM0Model`: implemented multi-source rule evaluation covering confirmed fraud links (`CONFIRMED_FRAUD_LINK`), national ID collisions (`IDENTITY_REUSE_COLLISION`), tiered phone reuse (`R1_HIGH_PHONE_REUSE`, `PHONE_REUSE_MODERATE`), tiered device reuse (`R2_HIGH_DEVICE_REUSE`, `DEVICE_REUSE_MODERATE`), tampered Secure QR (`R7_SECURE_QR_TAMPERED`), invalid checksums (`R5_INVALID_ID_CHECKSUM`), OCR contradictions (`R3_NAME_CONTRADICTION`, `R4_DOB_CONTRADICTION`), face mismatch (`DOCUMENT_FACE_MISMATCH`), generative AI image signatures (`IMAGE_AI_SYNTHETIC`, `JPEG_QUALITY_SYNTHETIC`, `IMAGE_ELA_TAMPERED`, `IMAGE_FFT_GRID_ANOMALY`), and velocity bursts (`R6_VELOCITY_BURST`, `VELOCITY_MODERATE`). Added explicit missing signal tracking (`EvidenceStatus.UNAVAILABLE`) with zero score impact. Added benchmark dict helper `evaluate_m0_rules_dict` conforming to `MODELS_TRAINING_SPEC.md §3.3`.

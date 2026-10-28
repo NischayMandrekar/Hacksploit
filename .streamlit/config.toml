@@ -1,0 +1,13 @@
+[server]
+maxUploadSize = 50
+enableXsrfProtection = false
+enableCORS = false
+headless = true
+port = 8501
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[runner]
+fastReruns = true

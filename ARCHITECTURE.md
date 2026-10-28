@@ -97,3 +97,10 @@ app/
 ### 2026-10-28 — Handler Registry Pattern for Worker
 - **Decision:** Replace the static class `CPUExecutionBackend` with a modular `HandlerRegistry` that allows modules to register bounded worker tasks (e.g. `kyc.document_forensics`, `graph.cluster_refresh`).
 - **Reasoning:** Satisfies Open/Closed principle in `AGENTS.md`. New background tasks can be added without modifying the core worker engine.
+
+### 2026-10-28 — KYC Domain Adaptation & Hard Override Fusion Architecture
+- **Decision:** Decouple M3 Fusion from Kaggle e-commerce transaction schemas (`card1`, `TransactionAmt`). In our KYC domain, `m1_prob` is populated from applicant behavioral velocity and `m2_prob` is populated from the relational graph engine's ego-density and neighbor contagion risk. Enforce a two-tier gate:
+  1. Deterministic Hard Overrides: If statutory checksum fails (Verhoeff $D_5$ / PAN format), C2PA marks media as AI-generated, or card is non-statutory $\implies$ immediate deterministic `REJECT`.
+  2. Probabilistic Fusion: Valid inputs proceed to the calibrated `ArgusMLPFusion` neural network.
+- **Reasoning:** Prevents ungrounded mock transaction values from injecting noise, and prevents neural network probability calibration from failing open on mathematically proven document forgery.
+

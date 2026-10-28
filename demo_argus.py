@@ -7,6 +7,7 @@ Run: PYTHONPATH=. streamlit run demo_argus.py
 """
 
 import io
+import os
 import sys
 import time
 import numpy as np
@@ -163,6 +164,7 @@ try:
         compare_dobs,
     )
     from app.modules.fusion.rules import DeterministicM0Model
+    from app.modules.fusion.features import KYCFeatureVectorizer, FEATURE_DIM
     _ok = True
 except ImportError as e:
     _ok = False
@@ -572,74 +574,19 @@ with tab_doc:
         st.markdown("---")
 
         # --- Universal Document Classifier & Feature Extraction Engine ---
-        st.markdown("#### 🪪 Universal Document Classifier & Dynamic Feature Extraction")
-        st.markdown(
-            "<div style='color:#565b8a; font-size:0.82rem; margin-bottom:12px;'>"
-            "Deep neural OCR (RapidOCR) + statutory rules + multi-layer forensic detection. "
-            "Dynamically classifies Aadhaar, PAN, Driving Licence, Passport, and rejects non-statutory regular IDs."
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
-        doc_preset = st.selectbox(
-            "Select a Document or Upload Custom File:",
-            [
-                "🟢 Real Aadhaar Card (Omdeep Borkar)",
-                "🔴 AI-Generated Aadhaar (Gemini / Imagen)",
-                "🔴 AI-Generated Driving Licence (Gemini / Imagen)",
-                "🔴 AI-Generated PAN Card (Gemini / Imagen)",
-                "🟡 Non-Statutory Regular ID (College Campus Badge)",
-                "📁 Custom Upload (Upload your own ID card)",
-            ],
-            key="doc_preset_select",
-        )
+        st.markdown("#### 🪪 Live KYC Document Scanner — Feature Extraction & Forensic Audit")
 
         raw_bytes = None
         img_filename = ""
 
-        if doc_preset.startswith("🟢 Real Aadhaar"):
-            path = "/mnt/data/projects/modularMonolith/WhatsApp Image 2026-10-28 at 18.49.11.jpeg"
-            img_filename = "WhatsApp Image 2026-10-28 at 18.49.11.jpeg"
-            if os.path.exists(path):
-                with open(path, "rb") as f:
-                    raw_bytes = f.read()
-        elif doc_preset.startswith("🔴 AI-Generated Aadhaar"):
-            path = "/mnt/data/projects/modularMonolith/ai_documents/Gemini_Generated_Image_krsb09krsb09krsb.png"
-            img_filename = "Gemini_Generated_Image_krsb09krsb09krsb.png"
-            if os.path.exists(path):
-                with open(path, "rb") as f:
-                    raw_bytes = f.read()
-        elif doc_preset.startswith("🔴 AI-Generated Driving Licence"):
-            path = "/mnt/data/projects/modularMonolith/ai_documents/Gemini_Generated_Image_4f86pb4f86pb4f86.png"
-            img_filename = "Gemini_Generated_Image_4f86pb4f86pb4f86.png"
-            if os.path.exists(path):
-                with open(path, "rb") as f:
-                    raw_bytes = f.read()
-        elif doc_preset.startswith("🔴 AI-Generated PAN Card"):
-            path = "/mnt/data/projects/modularMonolith/ai_documents/Gemini_Generated_Image_otq4fhotq4fhotq4.png"
-            img_filename = "Gemini_Generated_Image_otq4fhotq4fhotq4.png"
-            if os.path.exists(path):
-                with open(path, "rb") as f:
-                    raw_bytes = f.read()
-        elif doc_preset.startswith("🟡 Non-Statutory"):
-            from PIL import ImageDraw
-            badge_img = Image.new("RGB", (856, 540), color=(240, 245, 255))
-            d = ImageDraw.Draw(badge_img)
-            d.rectangle([0, 0, 856, 80], fill=(20, 50, 120))
-            d.text((25, 25), "CAMPUS UNIVERSITY - STUDENT IDENTITY CARD", fill=(255, 255, 255))
-            d.text((50, 120), "STUDENT ID CARD", fill=(0, 0, 0))
-            d.text((50, 160), "Name: Rahul Verma", fill=(0, 0, 0))
-            d.text((50, 200), "Roll No: 2023CSB1042", fill=(0, 0, 0))
-            d.text((50, 240), "Valid Till: May 2027", fill=(0, 0, 0))
-            buf = io.BytesIO()
-            badge_img.save(buf, format="JPEG", quality=90)
-            raw_bytes = buf.getvalue()
-            img_filename = "campus_student_id.jpg"
-        else:
-            uploaded = st.file_uploader("Upload a JPEG/PNG for feature extraction and forensic audit", type=["jpg", "jpeg", "png"], key="custom_doc_upload")
-            if uploaded:
-                raw_bytes = uploaded.read()
-                img_filename = uploaded.name
+        uploaded = st.file_uploader(
+            "Upload an Aadhaar, PAN, Driving Licence, or Passport (JPEG / PNG)",
+            type=["jpg", "jpeg", "png"],
+            key="custom_doc_upload",
+        )
+        if uploaded:
+            raw_bytes = uploaded.read()
+            img_filename = uploaded.name
 
         if raw_bytes:
             try:
@@ -780,6 +727,157 @@ with tab_doc:
                       5. <strong>Offline UIDAI RSA-2048 Verification</strong>: Official QR payloads signed with UIDAI's 2048-bit key cannot be forged without the private government key.
                     </div>
                     """, unsafe_allow_html=True)
+
+                # 6. M3 Feature Vector Panel
+                st.markdown("##### 🧮 X_M3 Feature Vector — Multi-Source Fraud Evidence")
+                st.markdown(
+                    "<div style='color:#565b8a; font-size:0.80rem; margin-bottom:10px;'>"
+                    "The 10-dimensional <code>X_M3</code> vector extracted from this document's evidence. "
+                    "All values are normalised to [0, 1]. Higher = more suspicious (except for isolated graph, which is neutral)."
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+
+                # Build ApplicationEvidence from report fields
+                _ev = ApplicationEvidence(
+                    applicant_id="demo",
+                    claimed_name=report.holder_name or "",
+                    id_type=report.document_type.value if hasattr(report, "document_type") else None,
+                    ocr_name_similarity=(
+                        1.0 if (report.holder_name and report.holder_name.strip()) else None
+                    ),
+                    id_checksum_valid=report.checksum_or_rule_valid if report.id_number else None,
+                    # ELA from tampering signals
+                    ela_status=(
+                        report.tampering_signals.get("ela_analysis").status
+                        if "ela_analysis" in report.tampering_signals
+                        else EvidenceStatus.UNAVAILABLE
+                    ),
+                    ela_max_diff=(
+                        report.tampering_signals["ela_analysis"].score * 50.0
+                        if "ela_analysis" in report.tampering_signals
+                        and report.tampering_signals["ela_analysis"].score is not None
+                        else None
+                    ),
+                    image_dimension_status=(
+                        report.tampering_signals.get("image_dimensions").status
+                        if "image_dimensions" in report.tampering_signals
+                        else EvidenceStatus.UNAVAILABLE
+                    ),
+                    exif_status=(
+                        report.tampering_signals.get("exif_metadata").status
+                        if "exif_metadata" in report.tampering_signals
+                        else EvidenceStatus.UNAVAILABLE
+                    ),
+                    jpeg_quality_status=(
+                        report.tampering_signals.get("jpeg_quality").status
+                        if "jpeg_quality" in report.tampering_signals
+                        else EvidenceStatus.UNAVAILABLE
+                    ),
+                    # No selfie in document-only scan
+                    face_similarity_status=EvidenceStatus.UNAVAILABLE,
+                    face_cosine_similarity=None,
+                )
+
+                _vz = KYCFeatureVectorizer()
+                _vec = _vz.extract(_ev)
+
+                # Compute real M0 from the same evidence
+                _m0 = DeterministicM0Model()
+                _m0_result = _m0.predict_risk(_ev)
+                _vec = _vz.extract_with_m0(_ev, _m0_result.risk_score)
+
+                _feature_meta = [
+                    ("m1_prob",            "Behavioral Velocity Risk",     "Submission speed & device velocity proxy — high when many apps in 1h"),
+                    ("m2_prob",            "Graph Network Risk",           "Shared phone/device/identity edges + confirmed fraud neighbors"),
+                    ("m0_rule_score",      "M0 Deterministic Rules",      "Checksum fail, identity collision, phone/device reuse, QR tamper"),
+                    ("ocr_contradiction",  "OCR Name Contradiction",      "1 − name similarity (0 = perfect match, 1 = total mismatch)"),
+                    ("id_checksum_valid",  "ID Checksum Failure",         "0.0 = passed (Verhoeff/PAN), 1.0 = failed, 0.5 = not checked"),
+                    ("tampering_ela_score","ELA Tampering Score",         "Error Level Analysis — localized recompression / paste forgery"),
+                    ("face_cosine_dist",   "Face Distance (doc↔selfie)",  "1 − cosine similarity — 0 = same person, 1 = different person"),
+                    ("is_doc_missing",     "Document Missing",            "1.0 when no document was submitted at all"),
+                    ("is_selfie_missing",  "Selfie Missing",              "1.0 when no selfie was submitted (biometric verification skipped)"),
+                    ("is_graph_isolated",  "Graph Isolated",              "1.0 when applicant has zero graph connections (brand-new identity)"),
+                ]
+
+                _vec_dict = _vec.to_dict()
+
+                def _risk_bar_color(val: float, name: str) -> str:
+                    if name in ("is_doc_missing", "is_selfie_missing", "is_graph_isolated"):
+                        return "#5c6eff" if val > 0.5 else "#2ade7c"
+                    if val >= 0.75:
+                        return "#ff4d4d"
+                    if val >= 0.40:
+                        return "#ffb84d"
+                    if val == 0.5 and name in ("ocr_contradiction", "id_checksum_valid", "tampering_ela_score", "face_cosine_dist"):
+                        return "#565b8a"  # grey = unknown
+                    return "#2ade7c"
+
+                rows_html = ""
+                for fname, label, desc in _feature_meta:
+                    val = _vec_dict[fname]
+                    bar_pct = int(val * 100)
+                    bar_col = _risk_bar_color(val, fname)
+                    val_label = f"{val:.2f}"
+                    rows_html += f"""
+                    <tr>
+                      <td style='color:#7d8eff; font-weight:600; font-size:0.80rem; white-space:nowrap; padding:7px 10px; width:170px;'>{label}</td>
+                      <td style='padding:7px 10px; width:110px;'>
+                        <div style='background:#1a1d3a; border-radius:4px; overflow:hidden; height:10px;'>
+                          <div style='width:{bar_pct}%; background:{bar_col}; height:10px; border-radius:4px; transition:width 0.3s;'></div>
+                        </div>
+                      </td>
+                      <td style='font-family: JetBrains Mono, monospace; color:{bar_col}; font-size:0.80rem; padding:7px 6px; width:42px; text-align:right;'>{val_label}</td>
+                      <td style='color:#565b8a; font-size:0.75rem; padding:7px 10px;'>{desc}</td>
+                    </tr>"""
+
+                st.markdown(
+                    f"""<table style='width:100%; border-collapse:collapse; background:#10132a;
+                        border:1px solid #1e2448; border-radius:10px; overflow:hidden;'>
+                      <thead>
+                        <tr style='border-bottom:1px solid #1e2448;'>
+                          <th style='padding:8px 10px; color:#565b8a; font-size:0.73rem; text-align:left; font-weight:600; letter-spacing:0.1em;'>FEATURE</th>
+                          <th style='padding:8px 10px; color:#565b8a; font-size:0.73rem; text-align:left;'>RISK LEVEL</th>
+                          <th style='padding:8px 10px; color:#565b8a; font-size:0.73rem; text-align:right;'>VALUE</th>
+                          <th style='padding:8px 10px; color:#565b8a; font-size:0.73rem; text-align:left;'>SOURCE</th>
+                        </tr>
+                      </thead>
+                      <tbody>{rows_html}</tbody>
+                    </table>""",
+                    unsafe_allow_html=True,
+                )
+
+                # Overall M3 fraud probability (proxy, uncalibrated)
+                _m3_proxy = sum(_vec_dict[f] for f in (
+                    "m0_rule_score", "ocr_contradiction", "id_checksum_valid",
+                    "tampering_ela_score"
+                ) if _vec_dict[f] != 0.5) / 4.0  # only non-neutral features
+                _m3_proxy = min(1.0, _m3_proxy)
+
+                _tier_col  = "#2ade7c" if _m3_proxy < 0.20 else ("#ffb84d" if _m3_proxy < 0.75 else "#ff4d4d")
+                _tier_name = "APPROVE" if _m3_proxy < 0.20 else ("FLAG REVIEW" if _m3_proxy < 0.75 else "REJECT")
+
+                st.markdown(
+                    f"""<div style='margin-top:12px; background:#10132a; border:1px solid #1e2448;
+                        border-left:4px solid {_tier_col}; border-radius:10px; padding:12px 16px;
+                        display:flex; justify-content:space-between; align-items:center;'>
+                      <div>
+                        <div style='font-size:0.72rem; color:#565b8a; letter-spacing:0.12em; font-weight:600;'>M0 DETERMINISTIC RISK SCORE</div>
+                        <div style='font-size:1.1rem; font-weight:800; color:{_tier_col}; margin-top:2px;'>{_tier_name} — {_m0_result.risk_score:.2f}</div>
+                      </div>
+                      <div style='text-align:right;'>
+                        <div style='font-size:0.72rem; color:#565b8a; letter-spacing:0.08em;'>REASON CODES</div>
+                        <div style='font-size:0.80rem; color:#c0c4d4; margin-top:2px;'>{', '.join(_m0_result.reason_codes[:3]) or '—'}</div>
+                      </div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+
+                st.caption(
+                    f"⚠️ M3 MLP output is uncalibrated on Indian KYC data. "
+                    f"M0 deterministic score ({_m0_result.risk_score:.2f}) and hard-override gates are the authoritative signals. "
+                    f"Vector dim: {FEATURE_DIM}D · Extraction: {t_elapsed:.1f}ms"
+                )
 
             except Exception as ex:
                 import traceback
