@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-10-28 21:44:31",
+  "domain": "Indian e-KYC Synthetic Benchmark",
+  "n_train": 8400,
+  "n_val": 1800,
+  "n_test": 1800,
+  "fraud_rate_pct": 5.83,
+  "feature_sets": {
+    "m1": [
+      "customer_age",
+      "income_lakhs",
+      "account_type_risk",
+      "velocity_1h",
+      "velocity_24h"
+    ],
+    "m2": [
+      "customer_age",
+      "income_lakhs",
+      "account_type_risk",
+      "velocity_1h",
+      "velocity_24h",
+      "shared_phone_degree",
+      "shared_device_degree",
+      "ego_density",
+      "cycle_count"
+    ],
+    "m3": [
+      "m1_prob",
+      "m2_prob",
+      "m0_rule_score",
+      "ocr_contradiction",
+      "id_checksum_valid",
+      "tampering_ela_score",
+      "face_cosine_dist",
+      "is_doc_missing",
+      "is_selfie_missing",
+      "is_graph_isolated"
+    ]
+  },
+  "metrics": {
+    "m1_tabular": {
+      "pr_auc": 0.9916,
+      "roc_auc": 0.9994,
+      "brier_score": 0.0076,
+      "recall_at_5pct_fpr": 1.0,
+      "recall_at_1pct_fpr": 0.9619
+    },
+    "m2_graph": {
+      "pr_auc": 1.0,
+      "roc_auc": 1.0,
+      "brier_score": 0.0,
+      "recall_at_5pct_fpr": 1.0,
+      "recall_at_1pct_fpr": 1.0
+    },
+    "m3_lgbm": {
+      "pr_auc": 1.0,
+      "roc_auc": 1.0,
+      "brier_score": 0.0002,
+      "recall_at_5pct_fpr": 1.0,
+      "recall_at_1pct_fpr": 1.0
+    },
+    "m3_mlp_pt": {
+      "pr_auc": 1.0,
+      "roc_auc": 1.0,
+      "brier_score": 0.1263,
+      "recall_at_5pct_fpr": 1.0,
+      "recall_at_1pct_fpr": 1.0
+    }
+  },
+  "lifts": {
+    "graph_over_tabular": 0.0084,
+    "fusion_over_graph": 0.0,
+    "total_lift_m3_lgbm": 0.0084,
+    "total_lift_m3_mlp": 0.0084
+  },
+  "adversarial_matrix": [
+    {
+      "Scenario": "Clean Baseline",
+      "M1 (Tabular)": 0.9916,
+      "M2 (Graph)": 1.0,
+      "M3 (LightGBM)": 1.0,
+      "M3 (MLP .pt)": 1.0
+    },
+    {
+      "Scenario": "10% Edge Deletion",
+      "M1 (Tabular)": 0.9916,
+      "M2 (Graph)": 1.0,
+      "M3 (LightGBM)": 1.0,
+      "M3 (MLP .pt)": 1.0
+    },
+    {
+      "Scenario": "20% Edge Deletion",
+      "M1 (Tabular)": 0.9916,
+      "M2 (Graph)": 0.9824,
+      "M3 (LightGBM)": 1.0,
+      "M3 (MLP .pt)": 1.0
+    },
+    {
+      "Scenario": "30% Edge Deletion",
+      "M1 (Tabular)": 0.9916,
+      "M2 (Graph)": 0.964,
+      "M3 (LightGBM)": 1.0,
+      "M3 (MLP .pt)": 0.9998
+    },
+    {
+      "Scenario": "Adversarial Camouflage",
+      "M1 (Tabular)": 0.9916,
+      "M2 (Graph)": 1.0,
+      "M3 (LightGBM)": 1.0,
+      "M3 (MLP .pt)": 1.0
+    }
+  ],
+  "models": {
+    "m1_kyc_tabular.pt": "LightGBM (5 tabular features)",
+    "m2_kyc_graph.pt": "LightGBM (9 tabular+graph features)",
+    "m3_kyc_fusion.pt": "CalibratedClassifierCV(LightGBM, isotonic, cv=3)",
+    "m3_kyc_mlp.pt": "ArgusMLPFusion PyTorch Linear(10\u219264\u219232\u219216\u21921)"
+  }
+}
