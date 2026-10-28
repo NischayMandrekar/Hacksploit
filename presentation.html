@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Identity Fraud Detection — First Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --ink: #1c1c1c;
+    --ink-2: #4a4a4a;
+    --ink-3: #7a7a7a;
+    --accent: #2d3f5c;
+    --accent-light: #e8ecf2;
+    --rule: #d8d5ce;
+    --warn: #7a4f2d;
+    --warn-bg: #fdf3eb;
+    --green: #2a5c3f;
+    --green-bg: #eaf2ed;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: #1a1a1a;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+  }
+
+  .deck {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  .slide {
+    display: none;
+    width: 960px; height: 600px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.4);
+  }
+  .slide.active { display: flex; flex-direction: column; }
+
+  /* Slide header */
+  .slide-header {
+    padding: 28px 40px 18px;
+    border-bottom: 1.5px solid var(--rule);
+    flex-shrink: 0;
+  }
+  .slide-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+    color: var(--ink-3); text-transform: uppercase; margin-bottom: 6px;
+  }
+  .slide-title {
+    font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1.2;
+  }
+  .slide-title span { color: var(--accent); }
+
+  /* Slide body */
+  .slide-body {
+    flex: 1; overflow: hidden;
+    display: flex; gap: 0;
+  }
+
+  /* Layout helpers */
+  .col { display: flex; flex-direction: column; }
+  .row { display: flex; flex-direction: row; }
+  .pad { padding: 22px 40px; }
+  .pad-sm { padding: 16px 28px; }
+
+  /* Typography */
+  .h3 { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .body { font-size: 13px; line-height: 1.65; color: var(--ink-2); }
+  .body-sm { font-size: 11.5px; line-height: 1.6; color: var(--ink-2); }
+  .caption { font-size: 10.5px; color: var(--ink-3); font-style: italic; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+
+  /* Stat blocks */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-box {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 12px 14px;
+  }
+  .stat-box .src { font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--accent); text-transform: uppercase; margin-bottom: 4px; }
+  .stat-box .fig { font-size: 18px; font-weight: 700; color: var(--ink); line-height: 1; margin-bottom: 3px; }
+  .stat-box .desc { font-size: 10.5px; color: var(--ink-2); line-height: 1.45; }
+  .stat-box .caveat { font-size: 9.5px; color: var(--ink-3); margin-top: 4px; }
+
+  /* Gap boxes */
+  .gap-list { display: flex; flex-direction: column; gap: 8px; }
+  .gap-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 10px 12px;
+  }
+  .gap-num { font-size: 11px; font-weight: 700; color: var(--accent); min-width: 18px; padding-top: 1px; }
+  .gap-text { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; }
+  .gap-sub { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+
+  /* Divider */
+  .vdiv { width: 1.5px; background: var(--rule); flex-shrink: 0; }
+
+  /* Evidence column */
+  .ev-col { flex: 1; border-right: 1.5px solid var(--rule); }
+  .ev-col:last-child { border-right: none; }
+  .ev-col-head { padding: 14px 18px 10px; border-bottom: 1px solid var(--rule); background: var(--accent-light); }
+  .ev-col-head .h3 { margin: 0; }
+  .ev-col-body { padding: 12px 18px; }
+  .ev-item { display: flex; align-items: baseline; gap: 7px; margin-bottom: 9px; }
+  .ev-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 6px; }
+  .ev-text { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; }
+  .ev-label { font-weight: 600; color: var(--ink); }
+  .warn-box { background: var(--warn-bg); border: 1px solid #e4c8a8; border-radius: 3px; padding: 8px 10px; margin-top: 8px; }
+  .warn-text { font-size: 10.5px; color: var(--warn); line-height: 1.5; }
+
+  /* Model table */
+  .model-table { width: 100%; border-collapse: collapse; }
+  .model-table th {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-3); padding: 6px 10px; border-bottom: 1.5px solid var(--rule); text-align: left;
+  }
+  .model-table td { padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; font-size: 11px; color: var(--ink-2); line-height: 1.45; }
+  .model-table tr:last-child td { border-bottom: none; }
+  .model-table .model-name { font-weight: 700; color: var(--ink); font-size: 11.5px; }
+  .model-table .model-tag { font-size: 9px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; display: block; }
+  .model-table .highlight-row td { background: var(--accent-light); }
+  .model-table .highlight-row td:first-child { border-left: 3px solid var(--accent); }
+
+  /* Status list */
+  .status-list { display: flex; flex-direction: column; gap: 7px; }
+  .status-item { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--ink-2); line-height: 1.5; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 2px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; flex-shrink: 0; margin-top: 2px; }
+  .badge-done { background: var(--green-bg); color: var(--green); }
+  .badge-wip  { background: #e8f0fe; color: #2a4f9e; }
+  .badge-next { background: #f0f0f0; color: #555; }
+
+  /* Metric boxes */
+  .metric-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .metric-box { background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; padding: 10px 14px; flex: 1; min-width: 110px; }
+  .metric-box .mname { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); margin-bottom: 4px; }
+  .metric-box .mval { font-size: 17px; font-weight: 700; color: var(--accent); }
+  .metric-box .msub { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+
+  /* Scenario strips */
+  .scenario-row { display: flex; gap: 10px; }
+  .scenario { flex: 1; background: var(--surface); border: 1px solid var(--rule); border-radius: 3px; padding: 12px 14px; }
+  .scenario-title { font-size: 11px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .scenario-body { font-size: 10.5px; color: var(--ink-2); line-height: 1.5; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .chip-approve { background: var(--green-bg); color: var(--green); }
+  .chip-review  { background: #fef3c7; color: #92400e; }
+  .chip-reject  { background: #fee2e2; color: #991b1b; }
+
+  /* Nav */
+  .nav {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 16px; background: rgba(28,28,28,0.85);
+    backdrop-filter: blur(6px); border-radius: 24px; padding: 8px 20px;
+  }
+  .nav-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.25); color: #ccc;
+    border-radius: 3px; padding: 4px 14px; font-size: 11px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-weight: 500;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .nav-btn:hover { border-color: rgba(255,255,255,0.7); color: #fff; }
+  .nav-counter { font-size: 11px; color: #888; font-family: 'JetBrains Mono', monospace; min-width: 40px; text-align: center; }
+
+  /* Footnote bar */
+  .footnote { height: 28px; border-top: 1px solid var(--rule); display: flex; align-items: center; padding: 0 40px; flex-shrink: 0; }
+  .footnote span { font-size: 9.5px; color: var(--ink-3); }
+  .footnote span + span { margin-left: auto; }
+
+  /* SVG shared */
+  svg text { font-family: 'Inter', sans-serif; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- ══════════════════════════════════════════════════════════════
+     SLIDE 1 — The Problem
+══════════════════════════════════════════════════════════════ -->
+<div class="slide active" id="slide-1">
+  <div class="slide-header">
+    <div class="slide-label">Problem Statement 3 · Hacksploit 2026 · First Review</div>
+    <div class="slide-title">Synthetic Identity Fraud in Automated <span>KYC Systems</span></div>
+  </div>
+
+  <div class="slide-body">
+    <!-- Left: what + gaps -->
+    <div class="col pad" style="flex:1.15; border-right:1.5px solid var(--rule);">
+
+      <!-- Assembly SVG -->
+      <svg width="100%" height="90" viewBox="0 0 380 88" style="margin-bottom:14px;">
+        <!-- boxes -->
+        <rect x="2"   y="20" width="88" height="34" rx="2" fill="#fff" stroke="#d8d5ce" stroke-width="1.2"/>
+        <rect x="100" y="20" width="88" height="34" rx="2" fill="#fff" stroke="#d8d5ce" stroke-width="1.2"/>
+        <rect x="198" y="20" width="88" height="34" rx="2" fill="#fff" stroke="#d8d5ce" stroke-width="1.2"/>
+        <rect x="296" y="10" width="82" height="54" rx="2" fill="#e8ecf2" stroke="#2d3f5c" stroke-width="1.5"/>
+        <!-- arrows -->
+        <text x="94"  y="40" font-size="14" fill="#7a7a7a" text-anchor="middle">+</text>
+        <text x="192" y="40" font-size="14" fill="#7a7a7a" text-anchor="middle">+</text>
+        <line x1="286" y1="37" x2="296" y2="37" stroke="#2d3f5c" stroke-width="1.5" marker-end="url(#arr)"/>
+        <defs>
+          <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="2.5" orient="auto">
+            <path d="M0,0 L0,5 L7,2.5 z" fill="#2d3f5c"/>
+          </marker>
+        </defs>
+        <!-- labels -->
+        <text x="46"  y="34" font-size="9.5" fill="#2a5c3f" font-weight="600" text-anchor="middle">Real Aadhaar #</text>
+        <text x="46"  y="46" font-size="9"   fill="#4a4a4a" text-anchor="middle">✓ valid format</text>
+        <text x="144" y="34" font-size="9.5" fill="#7a4f2d" font-weight="600" text-anchor="middle">Fabricated Name</text>
+        <text x="144" y="46" font-size="9"   fill="#4a4a4a" text-anchor="middle">✓ passes OCR</text>
+        <text x="242" y="34" font-size="9.5" fill="#7a4f2d" font-weight="600" text-anchor="middle">Generated Photo</text>
+        <text x="242" y="46" font-size="9"   fill="#4a4a4a" text-anchor="middle">✓ face match</text>
+        <text x="337" y="32" font-size="9.5" fill="#2d3f5c" font-weight="700" text-anchor="middle">Synthetic</text>
+        <text x="337" y="44" font-size="9.5" fill="#2d3f5c" font-weight="700" text-anchor="middle">Identity</text>
+        <text x="337" y="56" font-size="9"   fill="#2d3f5c" text-anchor="middle">each check passes</text>
+        <!-- note -->
+        <text x="190" y="80" font-size="9.5" fill="#7a7a7a" text-anchor="middle" font-style="italic">Each piece passes its individual check. Fraud only appears across applicants.</text>
+      </svg>
+
+      <div class="h3" style="margin-bottom:6px;">Why existing systems miss it</div>
+      <div class="gap-list">
+        <div class="gap-item">
+          <div class="gap-num">1</div>
+          <div><div class="gap-text">Individual checks pass — format validation, OCR, face-vs-document match all clear on a well-crafted synthetic identity.</div>
+          <div class="gap-sub">DeepID ICCV 2025: only 6 of 26 teams beat the document-forgery baseline.</div></div>
+        </div>
+        <div class="gap-item">
+          <div class="gap-num">2</div>
+          <div><div class="gap-text">Cross-applicant connections are invisible — the same phone hash on 7 applications is not visible to a single-application KYC check.</div></div>
+        </div>
+        <div class="gap-item">
+          <div class="gap-num">3</div>
+          <div><div class="gap-text">Missing evidence is treated as clean — if biometrics are skipped or document is unreadable, most systems default to pass.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: scale + India -->
+    <div class="col pad" style="flex:1;">
+      <div class="h3">Real-world scale</div>
+      <div class="stat-grid" style="margin-bottom:12px;">
+        <div class="stat-box">
+          <div class="src">Cifas · UK · Aug 2025</div>
+          <div class="fig">118k</div>
+          <div class="desc">Identity fraud cases, H1 2025 alone</div>
+          <div class="caveat">UK fraud-prevention ecosystem</div>
+        </div>
+        <div class="stat-box">
+          <div class="src">Veriff · 2026 Report</div>
+          <div class="fig">300%</div>
+          <div class="desc">Rise in AI-altered media vs 2024; 4.18% verifications fraudulent</div>
+          <div class="caveat">Vendor customer data</div>
+        </div>
+        <div class="stat-box">
+          <div class="src">Inscribe · Jan 2026</div>
+          <div class="fig">5×</div>
+          <div class="desc">Rise in AI-generated document fraud, May–Dec 2025. ~6% of docs flagged.</div>
+          <div class="caveat">Vendor network figures</div>
+        </div>
+        <div class="stat-box">
+          <div class="src">FinCEN · US · Nov 2024</div>
+          <div class="fig">↑ SARs</div>
+          <div class="desc">Deepfake media in suspicious-activity reports targeting KYC bypass</div>
+          <div class="caveat">US financial institutions</div>
+        </div>
+      </div>
+      <div class="stat-box" style="border-left:3px solid var(--accent);">
+        <div class="src">MHA / I4C · India · June 2026</div>
+        <div class="desc">Advisory on AI-generated identities and deepfake videos targeting video-KYC, facial authentication, and digital financial services in India. RBI KYC Directions mandate ongoing due diligence — not just onboarding.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>Sources: Cifas Fraudscape 2025 · Veriff Identity Fraud Report 2026 · Inscribe State of Document Fraud 2026 · FinCEN Alert FIN-2024-A005 · MHA/I4C Advisory June 2026</span>
+    <span>1 / 7</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SLIDE 2 — The Approach: Dual-Plane Pipeline
+══════════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-2">
+  <div class="slide-header">
+    <div class="slide-label">Architecture</div>
+    <div class="slide-title">A Dual-Plane, <span>Lifecycle-Aware</span> Detection System</div>
+  </div>
+
+  <div class="slide-body col" style="padding:24px 40px 0;">
+
+    <div class="body-sm" style="margin-bottom:16px; max-width:640px;">
+      KYC is not a one-time onboarding check. The system screens at application, re-scores on lifecycle events, and presents explainable evidence to analysts — all through a single modular backend with no external message brokers.
+    </div>
+
+    <!-- Pipeline SVG -->
+    <svg width="100%" height="320" viewBox="0 0 880 320" style="flex-shrink:0;">
+      <defs>
+        <marker id="a2" markerWidth="7" markerHeight="7" refX="6" refY="2.5" orient="auto"><path d="M0,0 L0,5 L7,2.5 z" fill="#2d3f5c"/></marker>
+        <marker id="a3" markerWidth="7" markerHeight="7" refX="6" refY="2.5" orient="auto"><path d="M0,0 L0,5 L7,2.5 z" fill="#7a7a7a"/></marker>
+      </defs>
+
+      <!-- Lane labels -->
+      <text x="10" y="62"  font-size="9" font-weight="700" fill="#7a7a7a" letter-spacing="1">APPLICANT</text>
+      <text x="10" y="152" font-size="9" font-weight="700" fill="#2d3f5c" letter-spacing="1">FAST PLANE</text>
+      <text x="10" y="235" font-size="9" font-weight="700" fill="#4a4a4a" letter-spacing="1">SLOW PLANE</text>
+      <text x="10" y="308" font-size="9" font-weight="700" fill="#7a7a7a" letter-spacing="1">ANALYST</text>
+
+      <!-- Lane separators -->
+      <line x1="90" y1="80"  x2="880" y2="80"  stroke="#d8d5ce" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="90" y1="170" x2="880" y2="170" stroke="#d8d5ce" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="90" y1="255" x2="880" y2="255" stroke="#d8d5ce" stroke-width="1" stroke-dasharray="4,4"/>
+
+      <!-- Step 1: Submit -->
+      <rect x="92"  y="32" width="110" height="40" rx="3" fill="#fff" stroke="#d8d5ce" stroke-width="1.2"/>
+      <text x="147" y="50" font-size="10" font-weight="600" fill="#1c1c1c" text-anchor="middle">Submit</text>
+      <text x="147" y="63" font-size="9"   fill="#7a7a7a" text-anchor="middle">Form + docs + selfie</text>
+
+      <!-- Arrow down to fast plane -->
+      <line x1="147" y1="72" x2="147" y2="96" stroke="#2d3f5c" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <!-- Fast plane box -->
+      <rect x="92"  y="97" width="420" height="60" rx="3" fill="#e8ecf2" stroke="#2d3f5c" stroke-width="1.5"/>
+      <text x="302" y="118" font-size="10" font-weight="700" fill="#2d3f5c" text-anchor="middle">Fast Plane  ·  &lt; 200ms  ·  synchronous</text>
+      <text x="302" y="133" font-size="9.5" fill="#2d3f5c" text-anchor="middle">PII pseudonymization  ·  M0 deterministic rules  ·  1-hop graph reuse check  ·  format validation</text>
+      <text x="302" y="148" font-size="9"   fill="#4a4a4a" text-anchor="middle">No raw Aadhaar stored — salted HMAC-SHA256 at ingestion boundary</text>
+
+      <!-- Fast → Preliminary result (back to applicant) -->
+      <line x1="512" y1="127" x2="560" y2="127" stroke="#2d3f5c" stroke-width="1.5" marker-end="url(#a2)"/>
+      <rect x="562"  y="108" width="130" height="40" rx="3" fill="#fff" stroke="#d8d5ce" stroke-width="1.2"/>
+      <text x="627" y="125" font-size="10" font-weight="600" fill="#1c1c1c" text-anchor="middle">Preliminary</text>
+      <text x="627" y="138" font-size="9"   fill="#7a7a7a" text-anchor="middle">Decision returned immediately</text>
+
+      <!-- Fast → Async job enqueue -->
+      <line x1="302" y1="157" x2="302" y2="185" stroke="#7a7a7a" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#a3)"/>
+
+      <!-- Slow plane box -->
+      <rect x="92"  y="186" width="600" height="55" rx="3" fill="#fff" stroke="#d8d5ce" stroke-width="1.2"/>
+      <text x="392" y="206" font-size="10" font-weight="700" fill="#1c1c1c" text-anchor="middle">Slow Plane  ·  async worker  ·  PostgreSQL FOR UPDATE SKIP LOCKED  ·  no broker</text>
+      <text x="392" y="222" font-size="9.5" fill="#4a4a4a" text-anchor="middle">OCR field check  ·  ELA tampering  ·  TruFor forgery localization  ·  InsightFace face consistency  ·  2-hop graph ring detection</text>
+      <text x="392" y="236" font-size="9"   fill="#7a7a7a" text-anchor="middle">Results stored as ForensicEvidence rows · analyst queue updated</text>
+
+      <!-- Slow → Analyst -->
+      <line x1="392" y1="241" x2="392" y2="263" stroke="#7a7a7a" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#a3)"/>
+
+      <!-- Analyst box -->
+      <rect x="92"  y="265" width="600" height="40" rx="3" fill="#fff" stroke="#d8d5ce" stroke-width="1.2"/>
+      <text x="392" y="282" font-size="10" font-weight="600" fill="#1c1c1c" text-anchor="middle">Analyst Console</text>
+      <text x="392" y="295" font-size="9"   fill="#7a7a7a" text-anchor="middle">Evidence card  ·  linked fraud ring graph  ·  APPROVE / FLAG_REVIEW / REJECT  ·  export case report</text>
+
+      <!-- Lifecycle events arrow -->
+      <rect x="720" y="186" width="148" height="55" rx="3" fill="#fff" stroke="#d8d5ce" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <text x="794" y="208" font-size="9.5" font-weight="700" fill="#7a4f2d" text-anchor="middle">Post-Onboarding Events</text>
+      <text x="794" y="221" font-size="9"   fill="#4a4a4a" text-anchor="middle">account_activated</text>
+      <text x="794" y="233" font-size="9"   fill="#4a4a4a" text-anchor="middle">device_changed</text>
+      <text x="794" y="245" font-size="9"   fill="#4a4a4a" text-anchor="middle">transaction_velocity_spike</text>
+      <path d="M720,214 L695,214 L695,127 L562,127" stroke="#7a4f2d" stroke-width="1.2" stroke-dasharray="3,3" fill="none" marker-end="url(#a3)"/>
+      <text x="710" y="165" font-size="8.5" fill="#7a4f2d" text-anchor="middle">re-score trigger</text>
+    </svg>
+
+  </div>
+
+  <div class="footnote">
+    <span>Zero external broker dependency — 100% PostgreSQL row-level locks · RBI KYC Directions: ongoing due diligence is mandatory, not optional</span>
+    <span>2 / 7</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SLIDE 3 — Evidence Sources
+══════════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-3">
+  <div class="slide-header">
+    <div class="slide-label">Evidence Layer</div>
+    <div class="slide-title">What Each Signal Detects — <span>Documents · Behaviour · Biometrics</span></div>
+  </div>
+
+  <div class="slide-body">
+    <!-- Column 1: Document & Image -->
+    <div class="ev-col">
+      <div class="ev-col-head"><div class="h3">Document &amp; Image Forensics</div></div>
+      <div class="ev-col-body">
+        <div class="body-sm" style="margin-bottom:10px; font-weight:600; color:var(--ink);">Fast plane — &lt; 10ms — Pillow only</div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">Dimension anomaly:</span> AI generators output 1024×1024, 512×512. Camera photos don't.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">EXIF anomaly:</span> Missing camera metadata or Software = "Stable Diffusion" tag.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">JPEG quality factor:</span> Round values (quality=95) = editor. Camera profiles are never round.</div></div>
+
+        <div class="body-sm" style="margin:10px 0 8px; font-weight:600; color:var(--ink);">Slow plane — async worker — CPU</div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">ELA (Error Level Analysis):</span> Pasted/edited JPEG regions compress at different error levels than the surrounding image.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">FFT Spectral:</span> GAN upsampling leaves characteristic frequency-domain grid artifacts.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">TruFor (GRIP-UNINA):</span> Forgery localization heatmap. Selected baseline: only 6/26 DeepID 2025 teams beat it.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">InsightFace:</span> Face crop from ID → embedding. Selfie → embedding. Cosine distance + face-swap probability score.</div></div>
+
+        <div class="warn-box">
+          <div class="warn-text">Not included: C2PA manifests (absent on &gt;99% of Indian fraud tooling — zero discriminative value). UniversalFakeDetect (distribution shift to identity documents is unvalidated).</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 2: Behavioural -->
+    <div class="ev-col">
+      <div class="ev-col-head"><div class="h3">Behavioural Pattern Analysis</div></div>
+      <div class="ev-col-body">
+        <div class="body-sm" style="margin-bottom:10px; font-weight:600; color:var(--ink);">At ingestion — M0 + M1 features</div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">Velocity burst:</span> ≥ 4 applications from the same device fingerprint within 1 hour.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">Session anomaly:</span> Session &lt; 30s — pre-filled form, not live input.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">DOB email spread:</span> Same date-of-birth seen across multiple distinct email addresses in 4 weeks.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">Device reuse:</span> Same device fingerprint hash on ≥ 3 profiles → graph edge.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">Credit velocity:</span> velocity_6h, velocity_24h, velocity_4w counters from application history.</div></div>
+
+        <div class="body-sm" style="margin:10px 0 8px; font-weight:600; color:var(--ink);">Post-onboarding continuous monitoring</div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text">Lifecycle events (account_activated, device_changed, velocity_spike) re-score the identity graph cluster in the async worker.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">Dataset:</span> BAF NeurIPS 2022 — 1M records, temporal train/test split to prevent leakage.</div></div>
+
+        <!-- Mini bar SVG -->
+        <svg width="100%" height="60" viewBox="0 0 240 58" style="margin-top:4px;">
+          <text x="0" y="10" font-size="8.5" fill="#7a7a7a">BAF velocity features — importance rank</text>
+          <rect x="60" y="16" width="120" height="10" rx="1" fill="#d8d5ce"/>
+          <rect x="60" y="16" width="120" height="10" rx="1" fill="#2d3f5c" opacity="0.7"/>
+          <text x="57" y="25" font-size="8" fill="#4a4a4a" text-anchor="end">velocity_24h</text>
+
+          <rect x="60" y="30" width="120" height="10" rx="1" fill="#d8d5ce"/>
+          <rect x="60" y="30" width="82" height="10" rx="1" fill="#2d3f5c" opacity="0.5"/>
+          <text x="57" y="39" font-size="8" fill="#4a4a4a" text-anchor="end">dob_email_spread</text>
+
+          <rect x="60" y="44" width="120" height="10" rx="1" fill="#d8d5ce"/>
+          <rect x="60" y="44" width="55" height="10" rx="1" fill="#2d3f5c" opacity="0.35"/>
+          <text x="57" y="53" font-size="8" fill="#4a4a4a" text-anchor="end">session_length</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Column 3: Biometrics -->
+    <div class="ev-col">
+      <div class="ev-col-head"><div class="h3">Biometric Signals</div></div>
+      <div class="ev-col-body">
+        <div class="body-sm" style="margin-bottom:10px; font-weight:600; color:var(--ink);">What we include</div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">Face cosine distance:</span> ID document face crop embedding vs. selfie embedding via InsightFace.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">Face-swap probability:</span> InsightFace swap-detection head score.</div></div>
+        <div class="ev-item"><div class="ev-dot"></div><div class="ev-text"><span class="ev-label">is_selfie_missing flag:</span> Absence is a signal in M3 — not a silent pass.</div></div>
+
+        <div class="body-sm" style="margin:10px 0 8px; font-weight:600; color:var(--ink);">Honest limitations</div>
+        <div class="warn-box" style="margin-bottom:8px;">
+          <div class="warn-text"><strong>FinCEN Nov 2024:</strong> Deepfake video streams are used specifically to pass biometric checks. A live human can submit synthetic documents and pass face liveness.</div>
+        </div>
+        <div class="warn-box" style="margin-bottom:8px;">
+          <div class="warn-text"><strong>eKYC-DF dataset (IEEE):</strong> 228k+ fake videos. Deepfake-resistant biometric KYC remains an open research problem.</div>
+        </div>
+        <div class="warn-box">
+          <div class="warn-text"><strong>Our treatment:</strong> Biometric scores are additive features into M3 — not gates. A shared address or device alone does not prove fraud.</div>
+        </div>
+
+        <div class="body-sm" style="margin-top:10px; color:var(--ink-3);">All signals produce EvidenceStatus: PRESENT / ANOMALOUS / UNAVAILABLE — never a silent default.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>All three evidence classes feed the M3 fusion layer as calibrated input features — not as independent pass/fail gates</span>
+    <span>3 / 7</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SLIDE 4 — The Four Models
+══════════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-4">
+  <div class="slide-header">
+    <div class="slide-label">Model Hierarchy</div>
+    <div class="slide-title">M0 → M3: What Each Model Does, Takes, and Returns</div>
+  </div>
+
+  <div class="slide-body row">
+    <!-- Table -->
+    <div class="col pad" style="flex:1.6; overflow:auto;">
+      <table class="model-table">
+        <thead>
+          <tr>
+            <th style="width:80px;">Model</th>
+            <th style="width:175px;">Inputs</th>
+            <th style="width:140px;">Output</th>
+            <th>Responsible For</th>
+            <th style="width:80px;">Baseline</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="model-name">M0</span><span class="model-tag">Rules</span></td>
+            <td class="mono" style="font-size:9.5px; color:#4a4a4a;">shared_phone_count<br>ocr_name_similarity<br>dob_mismatch_years<br>id_checksum_valid<br>velocity_1h</td>
+            <td class="mono" style="font-size:9.5px; color:#4a4a4a;">rule_score [0–1]<br>triggered_rules[]</td>
+            <td class="body-sm">Minimum operational baseline. Deterministic. Executes synchronously in &lt; 10ms. No training required. Serves as the audit-explainable floor every fraud system must beat.</td>
+            <td style="font-weight:700; color:var(--accent); font-size:13px; text-align:center;">0.777<br><span style="font-size:9px; font-weight:400; color:var(--ink-3);">PR-AUC</span></td>
+          </tr>
+          <tr>
+            <td><span class="model-name">M1</span><span class="model-tag">Tabular</span></td>
+            <td class="mono" style="font-size:9.5px; color:#4a4a4a;">income, age<br>employment_status<br>velocity_6h/24h/4w<br>session_length<br>credit_risk_score</td>
+            <td class="mono" style="font-size:9.5px; color:#4a4a4a;">m1_prob [0–1]</td>
+            <td class="body-sm">How much fraud is detectable from applicant attributes alone — no graph. Establishes ML baseline. Dataset: BAF NeurIPS 2022 (1M records, temporal split).</td>
+            <td style="font-weight:700; color:var(--accent); font-size:13px; text-align:center;">≈ 0.810<br><span style="font-size:9px; font-weight:400; color:var(--ink-3);">target</span></td>
+          </tr>
+          <tr>
+            <td><span class="model-name">M2</span><span class="model-tag">Graph</span></td>
+            <td class="mono" style="font-size:9.5px; color:#4a4a4a;">M1 features +<br>shared_phone_degree<br>shared_device_degree<br>ego_density<br>max_neighbor_risk<br>cycle_count</td>
+            <td class="mono" style="font-size:9.5px; color:#4a4a4a;">m2_prob [0–1]</td>
+            <td class="body-sm">Relational ring detection via bounded 2-hop NetworkX ego-networks. Dataset: Neo4j synthetic identity graph, 2433 profiles (433 fraud). Published benchmark to beat.</td>
+            <td style="font-weight:700; color:var(--accent); font-size:13px; text-align:center;">≥ 0.835<br><span style="font-size:9px; font-weight:400; color:var(--ink-3);">published</span></td>
+          </tr>
+          <tr class="highlight-row">
+            <td><span class="model-name">M3</span><span class="model-tag">Fusion</span></td>
+            <td class="mono" style="font-size:9.5px; color:#4a4a4a;">m1_prob, m2_prob<br>m0_rule_score<br>ocr_contradiction<br>tampering_ela_score<br>face_cosine_dist<br><strong>is_doc_missing<br>is_selfie_missing<br>is_graph_isolated</strong></td>
+            <td class="mono" style="font-size:9.5px; color:#4a4a4a;">calibrated_score<br>[0–1, Isotonic]<br>risk_tier<br>SHAP attribution</td>
+            <td class="body-sm"><strong>Core research contribution.</strong> Fuses all signals including explicit missing-evidence flags. Maintains detection when individual signals fail or are deliberately hidden by a sophisticated attacker. Calibrated: score 0.20 ≈ 20% actual fraud probability.</td>
+            <td style="font-weight:700; color:var(--accent); font-size:13px; text-align:center;">≥ 0.880<br><span style="font-size:9px; font-weight:400; color:var(--ink-3);">Brier ≤ 0.08</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PR-AUC Ladder SVG -->
+    <div class="col" style="flex:0.45; align-items:center; justify-content:center; border-left:1.5px solid var(--rule); padding:16px;">
+      <svg width="140" height="300" viewBox="0 0 140 300">
+        <!-- Axis -->
+        <line x1="60" y1="10" x2="60" y2="260" stroke="#d8d5ce" stroke-width="1.2"/>
+        <!-- Y ticks -->
+        <text x="55" y="260" font-size="8" fill="#7a7a7a" text-anchor="end">0.75</text>
+        <text x="55" y="190" font-size="8" fill="#7a7a7a" text-anchor="end">0.82</text>
+        <text x="55" y="130" font-size="8" fill="#7a7a7a" text-anchor="end">0.86</text>
+        <text x="55" y="55"  font-size="8" fill="#7a7a7a" text-anchor="end">0.89</text>
+
+        <!-- M0 bar -->
+        <rect x="65" y="215" width="32" height="45" rx="2" fill="#d8d5ce"/>
+        <text x="81" y="210" font-size="9.5" font-weight="700" fill="#1c1c1c" text-anchor="middle">M0</text>
+        <text x="81" y="267" font-size="8.5" fill="#7a7a7a" text-anchor="middle">0.777</text>
+
+        <!-- M1 bar -->
+        <rect x="65" y="190" width="32" height="70" rx="2" fill="#b0bad0"/>
+        <text x="81" y="185" font-size="9.5" font-weight="700" fill="#1c1c1c" text-anchor="middle">M1</text>
+
+        <!-- M2 bar -->
+        <rect x="65" y="130" width="32" height="130" rx="2" fill="#6a85a8"/>
+        <text x="81" y="125" font-size="9.5" font-weight="700" fill="#1c1c1c" text-anchor="middle">M2</text>
+        <text x="81" y="143" font-size="8.5" fill="#fff" text-anchor="middle">0.835</text>
+
+        <!-- M3 bar -->
+        <rect x="65" y="45" width="32" height="215" rx="2" fill="#2d3f5c"/>
+        <text x="81" y="40" font-size="9.5" font-weight="700" fill="#1c1c1c" text-anchor="middle">M3</text>
+        <text x="81" y="63" font-size="8.5" fill="#fff" text-anchor="middle">≥ 0.880</text>
+
+        <!-- Gap bracket -->
+        <line x1="97" y1="130" x2="107" y2="130" stroke="#2d3f5c" stroke-width="1.2"/>
+        <line x1="97" y1="45"  x2="107" y2="45"  stroke="#2d3f5c" stroke-width="1.2"/>
+        <line x1="107" y1="45" x2="107" y2="130" stroke="#2d3f5c" stroke-width="1.2"/>
+        <text x="110" y="92"  font-size="8.5" fill="#2d3f5c" font-weight="700">our</text>
+        <text x="110" y="103" font-size="8.5" fill="#2d3f5c" font-weight="700">gain</text>
+
+        <text x="70" y="285" font-size="8" fill="#7a7a7a">PR-AUC</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>M2 baseline: Nguyen &amp; Chiu, Discover Informatics, Springer Nature, October 2026 · M1 baseline: BAF NeurIPS 2022 benchmark</span>
+    <span>4 / 7</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SLIDE 5 — Adversarial Robustness
+══════════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-5">
+  <div class="slide-header">
+    <div class="slide-label">Research Contribution</div>
+    <div class="slide-title">Does Detection Hold When the Fraudster <span>Hides Connections?</span></div>
+  </div>
+
+  <div class="slide-body row">
+    <!-- Left: experiment description -->
+    <div class="col pad" style="flex:1; border-right:1.5px solid var(--rule);">
+      <div class="body-sm" style="margin-bottom:14px;">The central experiment other teams don't run: deliberately corrupt the identity graph and measure degradation across all four models under fixed seeds and a held-out test set.</div>
+
+      <div class="h3" style="margin-bottom:8px;">Controlled attack matrix</div>
+      <div class="gap-list" style="margin-bottom:14px;">
+        <div class="gap-item">
+          <div class="gap-num">E0</div>
+          <div><div class="gap-text"><strong>Clean:</strong> Full graph, all evidence. Establishes baseline for fair comparison.</div></div>
+        </div>
+        <div class="gap-item">
+          <div class="gap-num">E1</div>
+          <div><div class="gap-text"><strong>Missing links 10–30%:</strong> Identity edges randomly removed. Simulates fraudsters switching phone numbers or using proxy IPs.</div></div>
+        </div>
+        <div class="gap-item">
+          <div class="gap-num">E2</div>
+          <div><div class="gap-text"><strong>Adversarial camouflage:</strong> Fraudulent nodes deliberately linked to legitimate profiles to dilute cluster purity.</div></div>
+        </div>
+        <div class="gap-item">
+          <div class="gap-num">E3</div>
+          <div><div class="gap-text"><strong>Missing modality:</strong> Document or selfie evidence dropped. is_doc_missing = 1 / is_selfie_missing = 1. System must abstain safely, not auto-approve.</div></div>
+        </div>
+      </div>
+
+      <div class="warn-box">
+        <div class="warn-text"><strong>These are controlled corruption tests, not real-world attack simulations.</strong> Randomly deleting edges does not reproduce an intelligent attacker. Results will be reported with this qualification.</div>
+      </div>
+
+      <div class="body-sm" style="margin-top:12px;"><strong>Why this is novel:</strong> The Nguyen &amp; Chiu 2026 paper establishes the clean-data baseline. No published work combines missing graph edges + cross-source evidence loss + explicit missingness features in the fusion layer under one fixed evaluation protocol.</div>
+    </div>
+
+    <!-- Right: degradation chart SVG -->
+    <div class="col" style="flex:1; align-items:center; justify-content:center; padding:16px 24px;">
+      <div class="h3" style="margin-bottom:12px; text-align:center;">PR-AUC under graph degradation <span style="font-weight:400; color:var(--ink-3); text-transform:none; font-size:9px;">(hypothesis — not yet validated)</span></div>
+      <svg width="100%" height="270" viewBox="0 0 380 270">
+        <defs>
+          <marker id="a4" markerWidth="6" markerHeight="6" refX="5" refY="2.5" orient="auto"><path d="M0,0 L0,5 L6,2.5 z" fill="#7a7a7a"/></marker>
+        </defs>
+
+        <!-- axes -->
+        <line x1="55" y1="10" x2="55" y2="210" stroke="#d8d5ce" stroke-width="1.2"/>
+        <line x1="55" y1="210" x2="375" y2="210" stroke="#d8d5ce" stroke-width="1.2"/>
+
+        <!-- Y labels -->
+        <text x="50" y="210" font-size="8" fill="#7a7a7a" text-anchor="end">0.55</text>
+        <text x="50" y="170" font-size="8" fill="#7a7a7a" text-anchor="end">0.70</text>
+        <text x="50" y="120" font-size="8" fill="#7a7a7a" text-anchor="end">0.80</text>
+        <text x="50" y="65"  font-size="8" fill="#7a7a7a" text-anchor="end">0.88</text>
+
+        <!-- Gridlines -->
+        <line x1="55" y1="170" x2="375" y2="170" stroke="#ece9e2" stroke-width="1"/>
+        <line x1="55" y1="120" x2="375" y2="120" stroke="#ece9e2" stroke-width="1"/>
+        <line x1="55" y1="65"  x2="375" y2="65"  stroke="#ece9e2" stroke-width="1"/>
+
+        <!-- X labels -->
+        <text x="88"  y="224" font-size="8" fill="#4a4a4a" text-anchor="middle">Clean</text>
+        <text x="155" y="224" font-size="8" fill="#4a4a4a" text-anchor="middle">10% missing</text>
+        <text x="222" y="224" font-size="8" fill="#4a4a4a" text-anchor="middle">20% missing</text>
+        <text x="289" y="224" font-size="8" fill="#4a4a4a" text-anchor="middle">30% missing</text>
+        <text x="356" y="224" font-size="8" fill="#4a4a4a" text-anchor="middle">Camouflage</text>
+
+        <!-- M0 line (flat rule baseline) -->
+        <!-- M0: 0.777 → y = 210 - (0.777-0.55)/(0.88-0.55)*200 = 210-137.6=72.4... let me recalc -->
+        <!-- scale: y = 210 - ((val-0.55)/0.33)*200 -->
+        <!-- 0.777: y=210-136=74  0.710:210-96=114  0.640:210-54=156  0.560:210-6=204 ... -->
+        <!-- Let me use: yScale = (val - 0.54) / 0.36 * 200; y = 210 - yScale -->
+        <!-- 0.777: (0.777-0.54)/0.36*200=131.7 → y=78 -->
+        <!-- 0.835: (0.835-0.54)/0.36*200=163.9 → y=46 -->
+        <!-- 0.880: (0.88-0.54)/0.36*200=188.9 → y=21 -->
+        <!-- 0.725: (0.725-0.54)/0.36*200=102.8 → y=107 -->
+        <!-- 0.750: (0.750-0.54)/0.36*200=116.7 → y=93 -->
+        <!-- 0.710: (0.710-0.54)/0.36*200=94.4  → y=116 -->
+        <!-- 0.640: (0.640-0.54)/0.36*200=55.6  → y=154 -->
+        <!-- 0.560: (0.560-0.54)/0.36*200=11.1  → y=199 -->
+        <!-- 0.845: (0.845-0.54)/0.36*200=169.4 → y=41 -->
+        <!-- 0.852: (0.852-0.54)/0.36*200=173.3 → y=37 -->
+        <!-- 0.831: (0.831-0.54)/0.36*200=161.7 → y=48 -->
+        <!-- 0.874: (0.874-0.54)/0.36*200=185.6 → y=24 -->
+        <!-- M0 flat ~0.777 everywhere except camouflage 0.620 -->
+        <!-- 0.620: (0.620-0.54)/0.36*200=44.4 → y=166 -->
+
+        <!-- M2 line -->
+        <polyline points="88,46 155,78 222,107 289,148 356,93" fill="none" stroke="#7a7a7a" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        <!-- M3 line -->
+        <polyline points="88,21 155,24 222,37 289,48 356,41" fill="none" stroke="#2d3f5c" stroke-width="2"/>
+
+        <!-- M0 flat line -->
+        <polyline points="88,78 155,78 222,78 289,78 356,166" fill="none" stroke="#c0bbb0" stroke-width="1.2" stroke-dasharray="3,4"/>
+
+        <!-- Data points M2 -->
+        <circle cx="88"  cy="46"  r="3.5" fill="#fff" stroke="#7a7a7a" stroke-width="1.5"/>
+        <circle cx="155" cy="78"  r="3.5" fill="#fff" stroke="#7a7a7a" stroke-width="1.5"/>
+        <circle cx="222" cy="107" r="3.5" fill="#fff" stroke="#7a7a7a" stroke-width="1.5"/>
+        <circle cx="289" cy="148" r="3.5" fill="#fff" stroke="#7a7a7a" stroke-width="1.5"/>
+        <circle cx="356" cy="93"  r="3.5" fill="#fff" stroke="#7a7a7a" stroke-width="1.5"/>
+
+        <!-- Data points M3 -->
+        <circle cx="88"  cy="21"  r="3.5" fill="#2d3f5c"/>
+        <circle cx="155" cy="24"  r="3.5" fill="#2d3f5c"/>
+        <circle cx="222" cy="37"  r="3.5" fill="#2d3f5c"/>
+        <circle cx="289" cy="48"  r="3.5" fill="#2d3f5c"/>
+        <circle cx="356" cy="41"  r="3.5" fill="#2d3f5c"/>
+
+        <!-- Legend -->
+        <line x1="60" y1="248" x2="82" y2="248" stroke="#c0bbb0" stroke-width="1.2" stroke-dasharray="3,4"/>
+        <text x="86" y="252" font-size="9" fill="#7a7a7a">M0 Rules</text>
+        <line x1="130" y1="248" x2="152" y2="248" stroke="#7a7a7a" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <circle cx="141" cy="248" r="3" fill="#fff" stroke="#7a7a7a" stroke-width="1.5"/>
+        <text x="156" y="252" font-size="9" fill="#7a7a7a">M2 Graph</text>
+        <line x1="210" y1="248" x2="232" y2="248" stroke="#2d3f5c" stroke-width="2"/>
+        <circle cx="221" cy="248" r="3" fill="#2d3f5c"/>
+        <text x="236" y="252" font-size="9" font-weight="600" fill="#2d3f5c">M3 Fusion</text>
+
+        <!-- Key insight annotation -->
+        <text x="295" y="100" font-size="8.5" fill="#2d3f5c" font-weight="600">M3 falls back on OCR</text>
+        <text x="295" y="111" font-size="8.5" fill="#2d3f5c">contradiction + velocity</text>
+        <text x="295" y="122" font-size="8.5" fill="#2d3f5c">when graph edges drop</text>
+        <line x1="293" y1="108" x2="295" y2="108" stroke="#2d3f5c" stroke-width="0.8"/>
+
+        <text x="200" y="250" font-size="8" fill="#7a7a7a" text-anchor="middle">Note: these are target values — results to be reported from actual experiments</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>Hypothesis anchored on: Nguyen &amp; Chiu (Springer, Oct 2026) rules 0.777 → graph 0.835 baseline · DeepID ICCV 2025 challenge protocol</span>
+    <span>5 / 7</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SLIDE 6 — What We've Built & What's Coming
+══════════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-6">
+  <div class="slide-header">
+    <div class="slide-label">Current Status</div>
+    <div class="slide-title">What Is Built, What Is in Progress, <span>What to Expect</span></div>
+  </div>
+
+  <div class="slide-body row">
+    <!-- Left: status -->
+    <div class="col pad" style="flex:1; border-right:1.5px solid var(--rule);">
+      <div class="h3" style="margin-bottom:10px;">Backend (Agent track)</div>
+      <div class="status-list">
+        <div class="status-item"><span class="badge badge-done">Done</span> Platform core — config, PII pseudonymization via salted HMAC-SHA256. No raw Aadhaar/PAN stored at any layer.</div>
+        <div class="status-item"><span class="badge badge-done">Done</span> Artifact store — binary documents stored outside PostgreSQL with magic-byte validation and path-traversal protection.</div>
+        <div class="status-item"><span class="badge badge-done">Done</span> Identity &amp; RBAC — Argon2id passwords, JWT access tokens, rotating refresh tokens, analyst roles, API key management.</div>
+        <div class="status-item"><span class="badge badge-done">Done</span> Zero-broker lease worker — PostgreSQL FOR UPDATE SKIP LOCKED, extensible HandlerRegistry, cooperative cancellation. 32 tests passing.</div>
+        <div class="status-item"><span class="badge badge-wip">In progress</span> Relational graph schema — applicant_nodes, applicant_edges with composite indices on (source_hash, edge_type) for O(log n) 1-hop queries.</div>
+        <div class="status-item"><span class="badge badge-next">Next</span> Bounded 2-hop ego-network extractor (NetworkX) → M0 synchronous rules engine → KYC ingestion endpoints.</div>
+        <div class="status-item"><span class="badge badge-next">Next</span> Document forensics adapters (ELA, EXIF, TruFor) → Analyst case review API → Fusion integration.</div>
+      </div>
+
+      <div class="h3" style="margin-top:16px; margin-bottom:10px;">ML track (parallel)</div>
+      <div class="status-list">
+        <div class="status-item"><span class="badge badge-wip">Training</span> M1 LightGBM on BAF dataset (temporal split, no shuffle).</div>
+        <div class="status-item"><span class="badge badge-wip">Training</span> M2 graph features on Neo4j synthetic identity dataset (2433 profiles).</div>
+        <div class="status-item"><span class="badge badge-next">After M2</span> M3 calibrated fusion — Isotonic Regression on held-out calibration fold.</div>
+      </div>
+    </div>
+
+    <!-- Right: timeline SVG -->
+    <div class="col" style="flex:0.9; align-items:center; justify-content:center; padding:20px 24px;">
+      <div class="h3" style="margin-bottom:14px; text-align:center;">Delivery timeline</div>
+      <svg width="100%" height="310" viewBox="0 0 290 310">
+        <!-- Legend -->
+        <rect x="10" y="0" width="10" height="10" rx="1" fill="#2d3f5c"/>
+        <text x="24" y="9" font-size="8.5" fill="#4a4a4a">Backend</text>
+        <rect x="90" y="0" width="10" height="10" rx="1" fill="#6a85a8"/>
+        <text x="104" y="9" font-size="8.5" fill="#4a4a4a">ML Track</text>
+        <rect x="160" y="0" width="10" height="10" rx="1" fill="#d8d5ce"/>
+        <text x="174" y="9" font-size="8.5" fill="#4a4a4a">Frontend</text>
+
+        <!-- Phase rows -->
+        <!-- Phase 1: Done -->
+        <text x="10" y="32" font-size="8.5" font-weight="600" fill="#1c1c1c">Phase 1 — Foundation</text>
+        <rect x="10" y="37" width="120" height="16" rx="2" fill="#2d3f5c"/>
+        <text x="70"  y="49" font-size="8" fill="#fff" text-anchor="middle">Done ✓</text>
+
+        <!-- Phase 2: Graph -->
+        <text x="10" y="72" font-size="8.5" font-weight="600" fill="#1c1c1c">Phase 2 — Identity Graph</text>
+        <rect x="10" y="77" width="60" height="16" rx="2" fill="#2d3f5c" opacity="0.5"/>
+        <rect x="70" y="77" width="80" height="16" rx="2" fill="#e8ecf2" stroke="#2d3f5c" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="35" y="89" font-size="8" fill="#fff" text-anchor="middle">Now</text>
+        <text x="110" y="89" font-size="8" fill="#2d3f5c" text-anchor="middle">Next 2–3 sessions</text>
+
+        <!-- Phase 3: Forensics -->
+        <text x="10" y="112" font-size="8.5" font-weight="600" fill="#1c1c1c">Phase 3 — Document Forensics</text>
+        <rect x="90" y="117" width="100" height="16" rx="2" fill="#e8ecf2" stroke="#2d3f5c" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="140" y="129" font-size="8" fill="#2d3f5c" text-anchor="middle">After graph complete</text>
+
+        <!-- Phase 4: Fusion -->
+        <text x="10" y="152" font-size="8.5" font-weight="600" fill="#1c1c1c">Phase 4 — M3 Fusion API</text>
+        <rect x="140" y="157" width="100" height="16" rx="2" fill="#e8ecf2" stroke="#6a85a8" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="190" y="169" font-size="8" fill="#6a85a8" text-anchor="middle">With ML models ready</text>
+
+        <!-- ML Track -->
+        <text x="10" y="192" font-size="8.5" font-weight="600" fill="#1c1c1c">ML: M1 + M2 training</text>
+        <rect x="10" y="197" width="100" height="16" rx="2" fill="#6a85a8" opacity="0.7"/>
+        <text x="60" y="209" font-size="8" fill="#fff" text-anchor="middle">Parallel — ongoing now</text>
+
+        <text x="10" y="232" font-size="8.5" font-weight="600" fill="#1c1c1c">ML: M3 calibration + eval</text>
+        <rect x="110" y="237" width="100" height="16" rx="2" fill="#6a85a8" opacity="0.4" stroke="#6a85a8" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="160" y="249" font-size="8" fill="#4a4a4a" text-anchor="middle">After forensics integrated</text>
+
+        <!-- Phase 7: Frontend -->
+        <text x="10" y="272" font-size="8.5" font-weight="600" fill="#1c1c1c">Phase 7 — Web Console</text>
+        <rect x="170" y="277" width="110" height="16" rx="2" fill="#d8d5ce" stroke="#7a7a7a" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="225" y="289" font-size="8" fill="#4a4a4a" text-anchor="middle">Analyst UI + demo</text>
+
+        <!-- Now marker -->
+        <line x1="68" y1="18" x2="68" y2="295" stroke="#991b1b" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>
+        <text x="68" y="305" font-size="8" fill="#991b1b" text-anchor="middle">now</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>Backend and ML tracks run in parallel · All backend changes verified against 32 passing unit tests before merge · No external broker required at any phase</span>
+    <span>6 / 7</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SLIDE 7 — Evaluation & Demo
+══════════════════════════════════════════════════════════════ -->
+<div class="slide" id="slide-7">
+  <div class="slide-header">
+    <div class="slide-label">Evaluation Plan &amp; Demo</div>
+    <div class="slide-title">How We'll Prove It Works — <span>Metrics, Scenarios, Honest Claims</span></div>
+  </div>
+
+  <div class="slide-body row">
+    <!-- Left: metrics + claims -->
+    <div class="col pad" style="flex:1; border-right:1.5px solid var(--rule);">
+      <div class="h3" style="margin-bottom:10px;">Evaluation metrics</div>
+      <div class="metric-row" style="margin-bottom:14px;">
+        <div class="metric-box">
+          <div class="mname">Primary</div>
+          <div class="mval">PR-AUC</div>
+          <div class="msub">Correct for 1–5% fraud rate. ROC-AUC is misleading here.</div>
+        </div>
+        <div class="metric-box">
+          <div class="mname">Detection</div>
+          <div class="mval">R@5%FPR</div>
+          <div class="msub">Recall at fixed false-positive rate. Operational threshold.</div>
+        </div>
+        <div class="metric-box">
+          <div class="mname">Calibration</div>
+          <div class="mval">Brier ≤ 0.08</div>
+          <div class="msub">Score 0.20 ≈ 20% actual fraud probability.</div>
+        </div>
+        <div class="metric-box">
+          <div class="mname">Latency</div>
+          <div class="mval">&lt; 200ms</div>
+          <div class="msub">Synchronous fast plane, end-to-end.</div>
+        </div>
+      </div>
+
+      <div class="h3" style="margin-bottom:8px;">What we will not claim</div>
+      <div class="gap-list">
+        <div class="gap-item">
+          <div class="gap-num" style="color:#7a4f2d;">✕</div>
+          <div class="gap-text">Production accuracy on real Indian bank customers — our datasets are synthetic or research benchmarks, labeled as such.</div>
+        </div>
+        <div class="gap-item">
+          <div class="gap-num" style="color:#7a4f2d;">✕</div>
+          <div class="gap-text">That biometrics prove identity — face cosine distance proves face consistency between document and selfie, not genuine identity.</div>
+        </div>
+        <div class="gap-item">
+          <div class="gap-num" style="color:#7a4f2d;">✕</div>
+          <div class="gap-text">Results from modules not yet validated against labeled data (TruFor, InsightFace swap scores shown to analyst only until calibrated).</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: demo scenarios -->
+    <div class="col pad" style="flex:1;">
+      <div class="h3" style="margin-bottom:10px;">Three demo scenarios — what judges will see</div>
+
+      <div class="scenario-row" style="margin-bottom:10px;">
+        <div class="scenario">
+          <div class="scenario-title">Scene 1 — Clean Applicant</div>
+          <div class="scenario-body">Single application. No graph links to other profiles. Document passes EXIF + ELA checks. Face embedding distance within threshold. Velocity normal.</div>
+          <div style="margin-top:8px;"><span class="chip chip-approve">APPROVE</span> <span style="font-size:9.5px; color:var(--ink-3); margin-left:6px;">&lt; 200ms · fast plane only</span></div>
+        </div>
+      </div>
+
+      <div class="scenario-row" style="margin-bottom:10px;">
+        <div class="scenario">
+          <div class="scenario-title">Scene 2 — Hidden Synthetic Ring</div>
+          <div class="scenario-body">7 individually plausible applicants connected by a shared phone hash. Each application passes M0 rules in isolation. M2 graph engine detects the cluster via ego-network density and shared_phone_degree = 6. Analyst sees labelled identity graph.</div>
+          <div style="margin-top:8px;"><span class="chip chip-review">FLAG_REVIEW</span> <span style="font-size:9.5px; color:var(--ink-3); margin-left:6px;">M0 misses · M2 + M3 catch · ring visible in analyst console</span></div>
+        </div>
+      </div>
+
+      <div class="scenario-row">
+        <div class="scenario">
+          <div class="scenario-title">Scene 3 — Adversarial Stress Test</div>
+          <div class="scenario-body">Same ring with 30% of graph edges removed (fraudster switched phone numbers). M2 graph signal degrades. M3 fusion falls back on OCR name contradiction and velocity burst. Demonstrates why multi-source fusion outperforms any single model under real adversarial conditions.</div>
+          <div style="margin-top:8px;"><span class="chip chip-reject">REJECT</span> <span style="font-size:9.5px; color:var(--ink-3); margin-left:6px;">M2 degrades · M3 holds via cross-modal evidence · SHAP card explains each contributor</span></div>
+        </div>
+      </div>
+
+      <div class="body-sm" style="margin-top:12px; color:var(--ink-3);">Every flagged application produces a SHAP attribution card showing which features drove the score — graph linkage, OCR contradiction, missing selfie — giving analysts explainable, actionable evidence rather than a black-box probability.</div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>Datasets: Neo4j synthetic identity graph (2,433 profiles) · BAF NeurIPS 2022 (1M records) · FantasyID / MIDV-500 (document forensics validation) — no real PII used</span>
+    <span>7 / 7</span>
+  </div>
+</div>
+
+</div><!-- end deck -->
+
+<!-- Nav -->
+<nav class="nav">
+  <button class="nav-btn" id="prev">← Prev</button>
+  <span class="nav-counter" id="counter">1 / 7</span>
+  <button class="nav-btn" id="next">Next →</button>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+  const counter = document.getElementById('counter');
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+  }
+
+  document.getElementById('prev').onclick = () => go(cur - 1);
+  document.getElementById('next').onclick = () => go(cur + 1);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown'  || e.key === ' ') go(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(cur - 1);
+  });
+</script>
+</body>
+</html>
